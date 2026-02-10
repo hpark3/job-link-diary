@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 export interface CandidateProfile {
   targetRoles: string[];
@@ -29,18 +29,22 @@ function loadProfile(): CandidateProfile {
 }
 
 export function useProfile() {
-  const [profile, setProfileState] = useState<CandidateProfile>(loadProfile);
+  const [savedProfile, setSavedProfile] = useState<CandidateProfile>(loadProfile);
+  const [draft, setDraftState] = useState<CandidateProfile>(loadProfile);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-  }, [profile]);
-
-  const setProfile = useCallback((update: Partial<CandidateProfile>) => {
-    setProfileState((prev) => ({ ...prev, ...update }));
+  const setDraft = useCallback((update: Partial<CandidateProfile>) => {
+    setDraftState((prev) => ({ ...prev, ...update }));
   }, []);
 
-  const isConfigured =
-    profile.targetRoles.length > 0 || profile.skills.length > 0;
+  const save = useCallback(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    setSavedProfile(draft);
+  }, [draft]);
 
-  return { profile, setProfile, isConfigured };
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(savedProfile);
+
+  const isConfigured =
+    savedProfile.targetRoles.length > 0 || savedProfile.skills.length > 0;
+
+  return { profile: savedProfile, draft, setDraft, save, isDirty, isConfigured };
 }

@@ -17,7 +17,7 @@ const Index = () => {
   const [selectedRecency, setSelectedRecency] = useState<RecencyValue>("all");
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
 
-  const { profile, setProfile, isConfigured } = useProfile();
+  const { profile, draft, setDraft, save, isDirty, isConfigured } = useProfile();
 
   const regionName = selectedRegion
     ? REGIONS.find((r) => r.key === selectedRegion)?.name ?? undefined
@@ -57,7 +57,7 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <DateNav dates={dates} selectedDate={selectedDate} onDateChange={handleDateChange} />
           <div className="flex items-center gap-2">
-            <ProfileEditor profile={profile} onUpdate={setProfile} isConfigured={isConfigured} />
+            <ProfileEditor draft={draft} onUpdate={setDraft} onSave={save} isDirty={isDirty} isConfigured={isConfigured} />
             <GenerateButton />
           </div>
         </div>

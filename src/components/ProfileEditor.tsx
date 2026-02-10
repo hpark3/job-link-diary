@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { User, X, Plus, Upload, Loader2, FileText } from "lucide-react";
+import { User, X, Plus, Upload, Loader2, FileText, Save, Check } from "lucide-react";
 import { ROLES, REGIONS } from "@/lib/constants";
 import type { CandidateProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface ProfileEditorProps {
-  profile: CandidateProfile;
+  draft: CandidateProfile;
   onUpdate: (update: Partial<CandidateProfile>) => void;
+  onSave: () => void;
+  isDirty: boolean;
   isConfigured: boolean;
 }
 
@@ -78,9 +80,10 @@ function TagInput({
   );
 }
 
-export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditorProps) {
+export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }: ProfileEditorProps) {
   const [isParsing, setIsParsing] = useState(false);
   const [cvName, setCvName] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,12 +217,12 @@ export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditor
               {ROLES.map((role) => (
                 <button
                   key={role}
-                  className={`filter-chip text-xs ${profile.targetRoles.includes(role) ? "active" : ""}`}
+                  className={`filter-chip text-xs ${draft.targetRoles.includes(role) ? "active" : ""}`}
                   onClick={() =>
                     onUpdate({
-                      targetRoles: profile.targetRoles.includes(role)
-                        ? profile.targetRoles.filter((r) => r !== role)
-                        : [...profile.targetRoles, role],
+                      targetRoles: draft.targetRoles.includes(role)
+                        ? draft.targetRoles.filter((r) => r !== role)
+                        : [...draft.targetRoles, role],
                     })
                   }
                 >
@@ -235,7 +238,7 @@ export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditor
               Skills
             </label>
             <TagInput
-              tags={profile.skills}
+              tags={draft.skills}
               onChange={(skills) => onUpdate({ skills })}
               placeholder="e.g. SQL, Python, Tableau…"
             />
@@ -247,7 +250,7 @@ export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditor
               Domains
             </label>
             <TagInput
-              tags={profile.domains}
+              tags={draft.domains}
               onChange={(domains) => onUpdate({ domains })}
               placeholder="e.g. Fintech, SaaS, E-commerce…"
             />
@@ -262,12 +265,12 @@ export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditor
               {REGIONS.map((region) => (
                 <button
                   key={region.key}
-                  className={`filter-chip text-xs ${profile.preferredRegions.includes(region.key) ? "active" : ""}`}
+                  className={`filter-chip text-xs ${draft.preferredRegions.includes(region.key) ? "active" : ""}`}
                   onClick={() =>
                     onUpdate({
-                      preferredRegions: profile.preferredRegions.includes(region.key)
-                        ? profile.preferredRegions.filter((r) => r !== region.key)
-                        : [...profile.preferredRegions, region.key],
+                      preferredRegions: draft.preferredRegions.includes(region.key)
+                        ? draft.preferredRegions.filter((r) => r !== region.key)
+                        : [...draft.preferredRegions, region.key],
                     })
                   }
                 >
@@ -286,7 +289,7 @@ export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditor
               {EXP_LEVELS.map((lvl) => (
                 <button
                   key={lvl.value}
-                  className={`filter-chip text-xs ${profile.experienceLevel === lvl.value ? "active" : ""}`}
+                  className={`filter-chip text-xs ${draft.experienceLevel === lvl.value ? "active" : ""}`}
                   onClick={() => onUpdate({ experienceLevel: lvl.value })}
                 >
                   {lvl.label}
@@ -294,6 +297,30 @@ export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditor
               ))}
             </div>
           </div>
+
+          {/* Save Button */}
+          <Button
+            className="w-full gap-2"
+            disabled={!isDirty && !justSaved}
+            onClick={() => {
+              onSave();
+              setJustSaved(true);
+              toast.success("Profile saved!");
+              setTimeout(() => setJustSaved(false), 2000);
+            }}
+          >
+            {justSaved ? (
+              <>
+                <Check className="w-4 h-4" />
+                Saved!
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                {isDirty ? "Save Profile" : "No changes"}
+              </>
+            )}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
