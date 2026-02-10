@@ -43,10 +43,10 @@ export function GenerateButton() {
     <button
       onClick={generate}
       disabled={loading}
-      className="filter-chip flex items-center gap-2 border-primary/30 hover:border-primary"
+      className="filter-chip flex items-center gap-2 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground"
     >
       <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-      <span className="font-mono text-xs">{loading ? "Generating..." : "Generate Today"}</span>
+      <span className="text-xs">{loading ? "Generating..." : "Generate Today"}</span>
     </button>
   );
 }
