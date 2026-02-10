@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { User, X, Plus, Upload, Loader2, FileText } from "lucide-react";
+import { User, X, Plus, Upload, Loader2, FileText, Save, Check } from "lucide-react";
 import { ROLES, REGIONS } from "@/lib/constants";
 import type { CandidateProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
