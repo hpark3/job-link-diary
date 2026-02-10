@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { User, X, Plus } from "lucide-react";
+import { useState, useRef } from "react";
+import { User, X, Plus, Upload, Loader2, FileText } from "lucide-react";
 import { ROLES, REGIONS } from "@/lib/constants";
 import type { CandidateProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface ProfileEditorProps {
   profile: CandidateProfile;
@@ -77,6 +79,70 @@ function TagInput({
 }
 
 export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditorProps) {
+  const [isParsing, setIsParsing] = useState(false);
+  const [cvName, setCvName] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Only accept text-readable files for now
+    const allowed = [
+      "text/plain",
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (!allowed.includes(file.type) && !file.name.endsWith(".txt") && !file.name.endsWith(".md")) {
+      toast.error("Please upload a .txt, .md, .pdf, or .docx file");
+      return;
+    }
+
+    setIsParsing(true);
+    setCvName(file.name);
+
+    try {
+      // Read as text (works for .txt/.md; for pdf/docx we send raw text attempt)
+      const text = await file.text();
+
+      if (text.trim().length < 20) {
+        toast.error("CV content is too short to parse");
+        setIsParsing(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("parse-cv", {
+        body: { cvText: text },
+      });
+
+      if (error) {
+        throw new Error(error.message || "Failed to parse CV");
+      }
+
+      if (data?.profile) {
+        const p = data.profile;
+        onUpdate({
+          targetRoles: p.targetRoles ?? [],
+          skills: p.skills ?? [],
+          domains: p.domains ?? [],
+          preferredRegions: p.preferredRegions ?? [],
+          experienceLevel: p.experienceLevel ?? "mid",
+        });
+        toast.success("Profile extracted from CV!", {
+          description: p.summary || "Review and adjust below.",
+        });
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    } catch (err: any) {
+      console.error("CV parse error:", err);
+      toast.error("Failed to parse CV. Try a .txt version.");
+    } finally {
+      setIsParsing(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -86,7 +152,7 @@ export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditor
           className="gap-2"
         >
           <User className="w-3.5 h-3.5" />
-          {isConfigured ? "My Profile" : "Set Up Profile"}
+          {isConfigured ? "My Profile" : "Upload CV"}
         </Button>
       </SheetTrigger>
       <SheetContent className="overflow-y-auto">
@@ -98,6 +164,47 @@ export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditor
         </SheetHeader>
 
         <div className="space-y-6 mt-6">
+          {/* CV Upload */}
+          <div>
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
+              Upload CV
+            </label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".txt,.md,.pdf,.docx"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              className="w-full gap-2 justify-center"
+              onClick={() => fileRef.current?.click()}
+              disabled={isParsing}
+            >
+              {isParsing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Parsing CV…
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  {cvName ? "Re-upload CV" : "Choose File (.txt, .md, .pdf)"}
+                </>
+              )}
+            </Button>
+            {cvName && !isParsing && (
+              <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                <FileText className="w-3 h-3" />
+                {cvName}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              AI will extract your profile. You can fine-tune below.
+            </p>
+          </div>
+
           {/* Target Roles */}
           <div>
             <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
