@@ -9,6 +9,7 @@ export const ROLES = [
 export const REGIONS = [
   { name: "Seoul, South Korea", key: "seoul", geoId: "105149562" },
   { name: "London, United Kingdom", key: "london", geoId: "102257491" },
+  { name: "Singapore", key: "singapore", geoId: "102454443" },
 ] as const;
 
 export type Role = (typeof ROLES)[number];
