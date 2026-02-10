@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { subDays, format } from "date-fns";
 
 export interface Snapshot {
   id: string;
@@ -10,7 +11,12 @@ export interface Snapshot {
   created_at: string;
 }
 
-export function useSnapshots(filters?: { date?: string; role?: string; region?: string }) {
+export function useSnapshots(filters?: {
+  date?: string;
+  role?: string;
+  region?: string;
+  recencyDays?: number | null;
+}) {
   return useQuery({
     queryKey: ["snapshots", filters],
     queryFn: async () => {
@@ -21,6 +27,9 @@ export function useSnapshots(filters?: { date?: string; role?: string; region?: 
 
       if (filters?.date) {
         query = query.eq("date", filters.date);
+      } else if (filters?.recencyDays) {
+        const since = format(subDays(new Date(), filters.recencyDays), "yyyy-MM-dd");
+        query = query.gte("date", since);
       }
       if (filters?.role) {
         query = query.eq("role", filters.role);

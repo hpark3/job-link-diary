@@ -1,17 +1,47 @@
-import { ROLES, REGIONS } from "@/lib/constants";
+import { ROLES, REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
+import { Clock } from "lucide-react";
 
 interface FilterBarProps {
   selectedRole: string | null;
   selectedRegion: string | null;
+  selectedRecency: RecencyValue;
   onRoleChange: (role: string | null) => void;
   onRegionChange: (region: string | null) => void;
+  onRecencyChange: (recency: RecencyValue) => void;
 }
 
-export function FilterBar({ selectedRole, selectedRegion, onRoleChange, onRegionChange }: FilterBarProps) {
+export function FilterBar({
+  selectedRole,
+  selectedRegion,
+  selectedRecency,
+  onRoleChange,
+  onRegionChange,
+  onRecencyChange,
+}: FilterBarProps) {
   return (
     <div className="space-y-4">
+      {/* Recency */}
       <div>
-        <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2 block">Role</label>
+        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Clock className="w-3 h-3" />
+          Recency
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {RECENCY_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              className={`filter-chip ${selectedRecency === opt.value ? "active" : ""}`}
+              onClick={() => onRecencyChange(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Role */}
+      <div>
+        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Role</label>
         <div className="flex flex-wrap gap-2">
           <button
             className={`filter-chip ${!selectedRole ? "active" : ""}`}
@@ -30,8 +60,10 @@ export function FilterBar({ selectedRole, selectedRegion, onRoleChange, onRegion
           ))}
         </div>
       </div>
+
+      {/* Region */}
       <div>
-        <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2 block">Region</label>
+        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Region</label>
         <div className="flex flex-wrap gap-2">
           <button
             className={`filter-chip ${!selectedRegion ? "active" : ""}`}
