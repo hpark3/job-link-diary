@@ -120,6 +120,21 @@ export function SnapshotGrid({ snapshots, isLoading, profile, isProfileConfigure
                     </span>
                   </div>
 
+                  {snapshot.keyword_hits && snapshot.keyword_hits.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {snapshot.keyword_hits.slice(0, 4).map((kw) => (
+                        <span key={kw} className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">
+                          {kw}
+                        </span>
+                      ))}
+                      {snapshot.keyword_hits.length > 4 && (
+                        <span className="text-[10px] px-1.5 py-0.5 text-muted-foreground">
+                          +{snapshot.keyword_hits.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {match && <MatchBadge match={match} />}
                 </a>
               </HoverCardTrigger>
