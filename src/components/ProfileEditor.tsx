@@ -16,8 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface ProfileEditorProps {
-  profile: CandidateProfile;
+  draft: CandidateProfile;
   onUpdate: (update: Partial<CandidateProfile>) => void;
+  onSave: () => void;
+  isDirty: boolean;
   isConfigured: boolean;
 }
 
