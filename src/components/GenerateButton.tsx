@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ROLES, REGIONS, buildLinkedInSearchUrl, buildIndeedSearchUrl, buildGlassdoorSearchUrl } from "@/lib/constants";
+import { ROLES, REGIONS, buildLinkedInSearchUrl, buildIndeedSearchUrl } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,13 +30,6 @@ export function GenerateButton() {
             region: region.name,
             platform: "Indeed",
             linkedin_search_url: buildIndeedSearchUrl(role, region.indeedDomain, region.indeedLocation),
-          },
-          {
-            date: today,
-            role,
-            region: region.name,
-            platform: "Glassdoor",
-            linkedin_search_url: buildGlassdoorSearchUrl(role, region.glassdoorLocId),
           },
         ])
       );

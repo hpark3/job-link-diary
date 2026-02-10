@@ -18,7 +18,6 @@ export type RegionKey = (typeof REGIONS)[number]["key"];
 export const PLATFORMS = [
   { name: "LinkedIn", key: "linkedin", icon: "🔗" },
   { name: "Indeed", key: "indeed", icon: "🟦" },
-  { name: "Glassdoor", key: "glassdoor", icon: "🟩" },
 ] as const;
 
 export type PlatformKey = (typeof PLATFORMS)[number]["key"];
@@ -64,7 +63,3 @@ export function buildIndeedSearchUrl(role: string, domain: string, location: str
   return `https://${domain}/jobs?q=${keywords}&l=${encodeURIComponent(location)}&fromage=1`;
 }
 
-export function buildGlassdoorSearchUrl(role: string, locId: string): string {
-  const keywords = encodeURIComponent(role);
-  return `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${keywords}&locId=${locId}&locT=C&fromAge=1`;
-}
