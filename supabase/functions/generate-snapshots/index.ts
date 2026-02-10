@@ -24,10 +24,6 @@ function buildIndeedSearchUrl(role: string, domain: string, location: string): s
   return `https://${domain}/jobs?q=${keywords}&l=${encodeURIComponent(location)}&fromage=1`;
 }
 
-function buildGlassdoorSearchUrl(role: string, locId: string): string {
-  const keywords = encodeURIComponent(role);
-  return `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${keywords}&locId=${locId}&locT=C&fromAge=1`;
-}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
