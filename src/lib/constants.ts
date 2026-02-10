@@ -44,6 +44,43 @@ export const ROLE_DESCRIPTIONS: Record<string, string> = {
     "Broad search capturing all roles containing 'Analyst' or 'Operations'. Covers business, data, product, systems analyst roles as well as operations-focused positions.",
 };
 
+/** Predefined skill keywords for lightweight signal extraction */
+export const SIGNAL_KEYWORDS = [
+  "SQL", "Python", "Excel", "Tableau", "Power BI", "CRM", "UAT",
+  "Analytics", "Agile", "Scrum", "JIRA", "Confluence", "SAP",
+  "Salesforce", "Data", "KPI", "Dashboard", "Automation", "API",
+  "ETL", "A/B Testing", "Stakeholder", "Requirements", "Process",
+  "Strategy", "Reporting", "Forecasting", "Machine Learning", "AI",
+] as const;
+
+/** Seniority keywords grouped by level */
+export const SENIORITY_KEYWORDS: Record<string, string[]> = {
+  junior: ["junior", "associate", "entry", "intern", "graduate", "trainee"],
+  mid: ["analyst", "specialist", "coordinator", "consultant"],
+  senior: ["senior", "lead", "principal", "staff", "head"],
+  executive: ["director", "manager", "vp", "chief", "executive"],
+};
+
+export function extractSignals(role: string, previewSnippet?: string): {
+  keyword_hits: string[];
+  keyword_score: number;
+  seniority_hint: boolean;
+} {
+  const text = `${role} ${previewSnippet ?? ""}`.toLowerCase();
+  const keyword_hits = SIGNAL_KEYWORDS.filter((kw) =>
+    text.includes(kw.toLowerCase())
+  );
+  const keyword_score = Math.min(
+    100,
+    Math.round((keyword_hits.length / Math.max(SIGNAL_KEYWORDS.length, 1)) * 100)
+  );
+  const allSeniorityWords = Object.values(SENIORITY_KEYWORDS).flat();
+  const seniority_hint = allSeniorityWords.some((w) =>
+    role.toLowerCase().includes(w)
+  );
+  return { keyword_hits, keyword_score, seniority_hint };
+}
+
 export const REGION_DESCRIPTIONS: Record<string, string> = {
   "Seoul, South Korea":
     "Major tech hub in Asia. Growing demand in fintech, e-commerce, and enterprise SaaS. Korean language proficiency often preferred.",

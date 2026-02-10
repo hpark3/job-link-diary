@@ -19,28 +19,43 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          job_title: string | null
+          keyword_hits: string[] | null
+          keyword_score: number | null
           linkedin_search_url: string
           platform: string
+          preview_snippet: string | null
           region: string
           role: string
+          seniority_hint: boolean | null
         }
         Insert: {
           created_at?: string
           date: string
           id?: string
+          job_title?: string | null
+          keyword_hits?: string[] | null
+          keyword_score?: number | null
           linkedin_search_url: string
           platform?: string
+          preview_snippet?: string | null
           region: string
           role: string
+          seniority_hint?: boolean | null
         }
         Update: {
           created_at?: string
           date?: string
           id?: string
+          job_title?: string | null
+          keyword_hits?: string[] | null
+          keyword_score?: number | null
           linkedin_search_url?: string
           platform?: string
+          preview_snippet?: string | null
           region?: string
           role?: string
+          seniority_hint?: boolean | null
         }
         Relationships: []
       }

@@ -5,6 +5,7 @@ import { FilterBar } from "@/components/FilterBar";
 import { DateNav } from "@/components/DateNav";
 import { SnapshotGrid } from "@/components/SnapshotGrid";
 import { GenerateButton } from "@/components/GenerateButton";
+import { ExportCSV } from "@/components/ExportCSV";
 import { StatsBar } from "@/components/StatsBar";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
@@ -74,6 +75,7 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <DateNav dates={dates} selectedDate={selectedDate} onDateChange={handleDateChange} />
           <div className="flex items-center gap-2">
+            <ExportCSV snapshots={sortedSnapshots} />
             <ProfileEditor draft={draft} onUpdate={setDraft} onSave={save} isDirty={isDirty} isConfigured={isConfigured} />
             <GenerateButton />
           </div>

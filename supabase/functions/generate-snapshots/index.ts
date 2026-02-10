@@ -9,10 +9,33 @@ const ROLES = [
 ];
 
 const REGIONS = [
-  { name: "Seoul, South Korea", geoId: "105149562", indeedDomain: "kr.indeed.com", indeedLocation: "Seoul", glassdoorLocId: "3080052" },
-  { name: "London, United Kingdom", geoId: "102257491", indeedDomain: "uk.indeed.com", indeedLocation: "London", glassdoorLocId: "2671300" },
-  { name: "Singapore", geoId: "102454443", indeedDomain: "sg.indeed.com", indeedLocation: "Singapore", glassdoorLocId: "3235921" },
+  { name: "Seoul, South Korea", geoId: "105149562", indeedDomain: "kr.indeed.com", indeedLocation: "Seoul" },
+  { name: "London, United Kingdom", geoId: "102257491", indeedDomain: "uk.indeed.com", indeedLocation: "London" },
+  { name: "Singapore", geoId: "102454443", indeedDomain: "sg.indeed.com", indeedLocation: "Singapore" },
 ];
+
+const SIGNAL_KEYWORDS = [
+  "SQL", "Python", "Excel", "Tableau", "Power BI", "CRM", "UAT",
+  "Analytics", "Agile", "Scrum", "JIRA", "Confluence", "SAP",
+  "Salesforce", "Data", "KPI", "Dashboard", "Automation", "API",
+  "ETL", "A/B Testing", "Stakeholder", "Requirements", "Process",
+  "Strategy", "Reporting", "Forecasting", "Machine Learning", "AI",
+];
+
+const SENIORITY_WORDS = [
+  "junior", "associate", "entry", "intern", "graduate", "trainee",
+  "analyst", "specialist", "coordinator", "consultant",
+  "senior", "lead", "principal", "staff", "head",
+  "director", "manager", "vp", "chief", "executive",
+];
+
+function extractSignals(role: string) {
+  const text = role.toLowerCase();
+  const keyword_hits = SIGNAL_KEYWORDS.filter((kw) => text.includes(kw.toLowerCase()));
+  const keyword_score = Math.min(100, Math.round((keyword_hits.length / SIGNAL_KEYWORDS.length) * 100));
+  const seniority_hint = SENIORITY_WORDS.some((w) => text.includes(w));
+  return { keyword_hits, keyword_score, seniority_hint };
+}
 
 function buildLinkedInSearchUrl(role: string, geoId: string): string {
   const keywords = encodeURIComponent(role);
@@ -23,7 +46,6 @@ function buildIndeedSearchUrl(role: string, domain: string, location: string): s
   const keywords = encodeURIComponent(role);
   return `https://${domain}/jobs?q=${keywords}&l=${encodeURIComponent(location)}&fromage=1`;
 }
-
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,14 +65,19 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().split("T")[0];
 
-    const rows = ROLES.flatMap((role) =>
-      REGIONS.flatMap((region) => [
+    const rows = ROLES.flatMap((role) => {
+      const signals = extractSignals(role);
+      return REGIONS.flatMap((region) => [
         {
           date: today,
           role,
           region: region.name,
           platform: "LinkedIn",
           linkedin_search_url: buildLinkedInSearchUrl(role, region.geoId),
+          job_title: role,
+          keyword_hits: signals.keyword_hits,
+          keyword_score: signals.keyword_score,
+          seniority_hint: signals.seniority_hint,
         },
         {
           date: today,
@@ -58,9 +85,13 @@ Deno.serve(async (req) => {
           region: region.name,
           platform: "Indeed",
           linkedin_search_url: buildIndeedSearchUrl(role, region.indeedDomain, region.indeedLocation),
+          job_title: role,
+          keyword_hits: signals.keyword_hits,
+          keyword_score: signals.keyword_score,
+          seniority_hint: signals.seniority_hint,
         },
-      ])
-    );
+      ]);
+    });
 
     const { error } = await supabase.from("snapshots").upsert(rows, {
       onConflict: "date,role,region,platform",
