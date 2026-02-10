@@ -57,7 +57,7 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <DateNav dates={dates} selectedDate={selectedDate} onDateChange={handleDateChange} />
           <div className="flex items-center gap-2">
-            <ProfileEditor profile={profile} onUpdate={setProfile} isConfigured={isConfigured} />
+            <ProfileEditor draft={draft} onUpdate={setDraft} onSave={save} isDirty={isDirty} isConfigured={isConfigured} />
             <GenerateButton />
           </div>
         </div>
