@@ -1,7 +1,10 @@
-import { ExternalLink, MapPin, Briefcase, Calendar, Info, Globe } from "lucide-react";
+import { ExternalLink, MapPin, Briefcase, Calendar, Info } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Snapshot } from "@/hooks/useSnapshots";
 import { REGIONS, PLATFORMS, ROLE_DESCRIPTIONS, REGION_DESCRIPTIONS } from "@/lib/constants";
+import type { CandidateProfile } from "@/hooks/useProfile";
+import { computeMatch } from "@/lib/matchScore";
+import { MatchBadge } from "@/components/MatchBadge";
 import {
   HoverCard,
   HoverCardContent,
