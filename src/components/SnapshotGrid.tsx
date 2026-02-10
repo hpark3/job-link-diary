@@ -14,6 +14,8 @@ import {
 interface SnapshotGridProps {
   snapshots: Snapshot[];
   isLoading: boolean;
+  profile?: CandidateProfile;
+  isProfileConfigured?: boolean;
 }
 
 function getRegionKey(regionName: string): string {
