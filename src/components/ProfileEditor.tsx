@@ -154,8 +154,8 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
           size="sm"
           className="gap-2"
         >
-          <User className="w-3.5 h-3.5" />
-          {isConfigured ? "My Profile" : "Upload CV"}
+          <Upload className="w-3.5 h-3.5" />
+          Upload CV
         </Button>
       </SheetTrigger>
       <SheetContent className="overflow-y-auto">
