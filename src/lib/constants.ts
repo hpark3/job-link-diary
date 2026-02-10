@@ -7,13 +7,21 @@ export const ROLES = [
 ] as const;
 
 export const REGIONS = [
-  { name: "Seoul, South Korea", key: "seoul", geoId: "105149562" },
-  { name: "London, United Kingdom", key: "london", geoId: "102257491" },
-  { name: "Singapore", key: "singapore", geoId: "102454443" },
+  { name: "Seoul, South Korea", key: "seoul", geoId: "105149562", indeedDomain: "kr.indeed.com", indeedLocation: "Seoul", glassdoorLocId: "3080052" },
+  { name: "London, United Kingdom", key: "london", geoId: "102257491", indeedDomain: "uk.indeed.com", indeedLocation: "London", glassdoorLocId: "2671300" },
+  { name: "Singapore", key: "singapore", geoId: "102454443", indeedDomain: "sg.indeed.com", indeedLocation: "Singapore", glassdoorLocId: "3235921" },
 ] as const;
 
 export type Role = (typeof ROLES)[number];
 export type RegionKey = (typeof REGIONS)[number]["key"];
+
+export const PLATFORMS = [
+  { name: "LinkedIn", key: "linkedin", icon: "🔗" },
+  { name: "Indeed", key: "indeed", icon: "🟦" },
+  { name: "Glassdoor", key: "glassdoor", icon: "🟩" },
+] as const;
+
+export type PlatformKey = (typeof PLATFORMS)[number]["key"];
 
 export const RECENCY_OPTIONS = [
   { label: "All Time", value: "all", days: null },
@@ -49,4 +57,14 @@ export const REGION_DESCRIPTIONS: Record<string, string> = {
 export function buildLinkedInSearchUrl(role: string, geoId: string): string {
   const keywords = encodeURIComponent(role);
   return `https://www.linkedin.com/jobs/search/?keywords=${keywords}&location=&geoId=${geoId}&f_TPR=r86400`;
+}
+
+export function buildIndeedSearchUrl(role: string, domain: string, location: string): string {
+  const keywords = encodeURIComponent(role);
+  return `https://${domain}/jobs?q=${keywords}&l=${encodeURIComponent(location)}&fromage=1`;
+}
+
+export function buildGlassdoorSearchUrl(role: string, locId: string): string {
+  const keywords = encodeURIComponent(role);
+  return `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${keywords}&locId=${locId}&locT=C&fromAge=1`;
 }

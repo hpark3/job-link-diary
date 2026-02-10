@@ -1,7 +1,7 @@
-import { ExternalLink, MapPin, Briefcase, Calendar, Info } from "lucide-react";
+import { ExternalLink, MapPin, Briefcase, Calendar, Info, Globe } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Snapshot } from "@/hooks/useSnapshots";
-import { REGIONS, ROLE_DESCRIPTIONS, REGION_DESCRIPTIONS } from "@/lib/constants";
+import { REGIONS, PLATFORMS, ROLE_DESCRIPTIONS, REGION_DESCRIPTIONS } from "@/lib/constants";
 import {
   HoverCard,
   HoverCardContent,
@@ -23,11 +23,16 @@ function regionColorClass(key: string): string {
   return map[key] ?? "region-seoul";
 }
 
+function getPlatformIcon(platformName: string): string {
+  const found = PLATFORMS.find((p) => p.name === platformName);
+  return found?.icon ?? "🔗";
+}
+
 export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="snapshot-card animate-pulse">
             <div className="h-4 bg-muted rounded w-3/4 mb-3" />
             <div className="h-3 bg-muted rounded w-1/2 mb-2" />
@@ -49,11 +54,12 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {snapshots.map((snapshot) => {
         const regionKey = getRegionKey(snapshot.region);
         const roleDesc = ROLE_DESCRIPTIONS[snapshot.role] ?? "";
         const regionDesc = REGION_DESCRIPTIONS[snapshot.region] ?? "";
+        const platformIcon = getPlatformIcon(snapshot.platform);
 
         return (
           <HoverCard key={snapshot.id} openDelay={200} closeDelay={100}>
@@ -64,15 +70,20 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
                 rel="noopener noreferrer"
                 className="snapshot-card group block"
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Briefcase className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-sm font-medium text-foreground">{snapshot.role}</span>
+                    <span className="text-sm">{platformIcon}</span>
+                    <span className="text-xs font-medium text-primary">{snapshot.platform}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Info className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors" />
                     <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-2">
+                  <Briefcase className="w-3.5 h-3.5 text-accent" />
+                  <span className="text-sm font-medium text-foreground">{snapshot.role}</span>
                 </div>
 
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -104,7 +115,7 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
                   <p className="text-xs text-muted-foreground leading-relaxed">{regionDesc}</p>
                 </div>
                 <div className="border-t border-border pt-2 text-xs text-muted-foreground/70">
-                  🔗 Click to open LinkedIn Jobs search for <strong>{snapshot.role}</strong> posted in the last 24 hours
+                  {platformIcon} Click to open <strong>{snapshot.platform}</strong> search for <strong>{snapshot.role}</strong> posted in the last 24 hours
                 </div>
               </div>
             </HoverCardContent>

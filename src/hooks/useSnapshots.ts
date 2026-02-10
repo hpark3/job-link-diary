@@ -7,6 +7,7 @@ export interface Snapshot {
   date: string;
   role: string;
   region: string;
+  platform: string;
   linkedin_search_url: string;
   created_at: string;
 }
@@ -15,6 +16,7 @@ export function useSnapshots(filters?: {
   date?: string;
   role?: string;
   region?: string;
+  platform?: string;
   recencyDays?: number | null;
 }) {
   return useQuery({
@@ -36,6 +38,9 @@ export function useSnapshots(filters?: {
       }
       if (filters?.region) {
         query = query.eq("region", filters.region);
+      }
+      if (filters?.platform) {
+        query = query.eq("platform", filters.platform);
       }
 
       const { data, error } = await query;
