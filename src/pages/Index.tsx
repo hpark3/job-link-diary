@@ -94,11 +94,31 @@ const Index = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm text-muted-foreground uppercase tracking-wider">
               Snapshots
-              <span className="text-accent font-semibold ml-2">{snapshots.length}</span>
+              <span className="text-accent font-semibold ml-2">{sortedSnapshots.length}</span>
             </h2>
+            <div className="flex items-center gap-1.5">
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground mr-1">Sort</span>
+              <button
+                className={`filter-chip text-xs gap-1 inline-flex items-center ${sortMode === "recent" ? "active" : ""}`}
+                onClick={() => setSortMode("recent")}
+              >
+                <Clock className="w-3 h-3" />
+                Recent
+              </button>
+              <button
+                className={`filter-chip text-xs gap-1 inline-flex items-center ${sortMode === "best-match" ? "active" : ""}`}
+                onClick={() => setSortMode("best-match")}
+                disabled={!isConfigured}
+                title={!isConfigured ? "Upload CV to enable match sorting" : ""}
+              >
+                <Target className="w-3 h-3" />
+                Best Match
+              </button>
+            </div>
           </div>
           <SnapshotGrid
-            snapshots={snapshots}
+            snapshots={sortedSnapshots}
             isLoading={isLoading}
             profile={profile}
             isProfileConfigured={isConfigured}
