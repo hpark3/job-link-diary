@@ -1,7 +1,10 @@
-import { ExternalLink, MapPin, Briefcase, Calendar, Info, Globe } from "lucide-react";
+import { ExternalLink, MapPin, Briefcase, Calendar, Info } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Snapshot } from "@/hooks/useSnapshots";
 import { REGIONS, PLATFORMS, ROLE_DESCRIPTIONS, REGION_DESCRIPTIONS } from "@/lib/constants";
+import type { CandidateProfile } from "@/hooks/useProfile";
+import { computeMatch } from "@/lib/matchScore";
+import { MatchBadge } from "@/components/MatchBadge";
 import {
   HoverCard,
   HoverCardContent,
@@ -11,6 +14,8 @@ import {
 interface SnapshotGridProps {
   snapshots: Snapshot[];
   isLoading: boolean;
+  profile?: CandidateProfile;
+  isProfileConfigured?: boolean;
 }
 
 function getRegionKey(regionName: string): string {
@@ -28,7 +33,7 @@ function getPlatformIcon(platformName: string): string {
   return found?.icon ?? "🔗";
 }
 
-export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
+export function SnapshotGrid({ snapshots, isLoading, profile, isProfileConfigured }: SnapshotGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -60,6 +65,7 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
         const roleDesc = ROLE_DESCRIPTIONS[snapshot.role] ?? "";
         const regionDesc = REGION_DESCRIPTIONS[snapshot.region] ?? "";
         const platformIcon = getPlatformIcon(snapshot.platform);
+        const match = isProfileConfigured && profile ? computeMatch(snapshot, profile) : null;
 
         return (
           <HoverCard key={snapshot.id} openDelay={200} closeDelay={100}>
@@ -98,6 +104,8 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
                     <span>{format(parseISO(snapshot.date), "yyyy-MM-dd")}</span>
                   </span>
                 </div>
+
+                {match && <MatchBadge match={match} />}
               </a>
             </HoverCardTrigger>
 

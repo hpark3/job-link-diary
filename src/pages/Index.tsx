@@ -5,7 +5,9 @@ import { DateNav } from "@/components/DateNav";
 import { SnapshotGrid } from "@/components/SnapshotGrid";
 import { GenerateButton } from "@/components/GenerateButton";
 import { StatsBar } from "@/components/StatsBar";
+import { ProfileEditor } from "@/components/ProfileEditor";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
+import { useProfile } from "@/hooks/useProfile";
 import { REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
 
 const Index = () => {
@@ -14,6 +16,8 @@ const Index = () => {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedRecency, setSelectedRecency] = useState<RecencyValue>("all");
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+
+  const { profile, setProfile, isConfigured } = useProfile();
 
   const regionName = selectedRegion
     ? REGIONS.find((r) => r.key === selectedRegion)?.name ?? undefined
@@ -52,7 +56,10 @@ const Index = () => {
 
         <div className="flex items-center justify-between">
           <DateNav dates={dates} selectedDate={selectedDate} onDateChange={handleDateChange} />
-          <GenerateButton />
+          <div className="flex items-center gap-2">
+            <ProfileEditor profile={profile} onUpdate={setProfile} isConfigured={isConfigured} />
+            <GenerateButton />
+          </div>
         </div>
 
         <FilterBar
@@ -73,7 +80,12 @@ const Index = () => {
               <span className="text-accent font-semibold ml-2">{snapshots.length}</span>
             </h2>
           </div>
-          <SnapshotGrid snapshots={snapshots} isLoading={isLoading} />
+          <SnapshotGrid
+            snapshots={snapshots}
+            isLoading={isLoading}
+            profile={profile}
+            isProfileConfigured={isConfigured}
+          />
         </section>
       </main>
     </div>
