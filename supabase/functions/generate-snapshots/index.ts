@@ -5,6 +5,7 @@ const ROLES = [
   "Product Analyst",
   "Product Operations",
   "Systems Analyst",
+  "Analyst OR Operations",
 ];
 
 const REGIONS = [
