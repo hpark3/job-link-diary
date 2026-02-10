@@ -65,6 +65,7 @@ export function SnapshotGrid({ snapshots, isLoading, profile, isProfileConfigure
         const roleDesc = ROLE_DESCRIPTIONS[snapshot.role] ?? "";
         const regionDesc = REGION_DESCRIPTIONS[snapshot.region] ?? "";
         const platformIcon = getPlatformIcon(snapshot.platform);
+        const match = isProfileConfigured && profile ? computeMatch(snapshot, profile) : null;
 
         return (
           <HoverCard key={snapshot.id} openDelay={200} closeDelay={100}>
