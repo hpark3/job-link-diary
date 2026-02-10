@@ -111,6 +111,9 @@
   .region-london {
     color: hsl(var(--london));
   }
+  .region-singapore {
+    color: hsl(var(--singapore));
+  }
 
   .stat-value {
     font-family: var(--font-heading);
