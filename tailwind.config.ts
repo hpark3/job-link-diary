@@ -63,6 +63,7 @@ export default {
         },
         seoul: "hsl(var(--seoul))",
         london: "hsl(var(--london))",
+        singapore: "hsl(var(--singapore))",
         elevated: "hsl(var(--surface-elevated))",
       },
       borderRadius: {
