@@ -32,6 +32,8 @@ export const ROLE_DESCRIPTIONS: Record<string, string> = {
     "Ensures smooth product delivery and cross-functional alignment. Covers workflow automation, tool management, release coordination, and operational efficiency.",
   "Systems Analyst":
     "Designs and improves IT systems to meet business requirements. Involves system architecture, integration planning, technical documentation, and process optimization.",
+  "Analyst OR Operations":
+    "Broad search capturing all roles containing 'Analyst' or 'Operations'. Covers business, data, product, systems analyst roles as well as operations-focused positions.",
 };
 
 export const REGION_DESCRIPTIONS: Record<string, string> = {
