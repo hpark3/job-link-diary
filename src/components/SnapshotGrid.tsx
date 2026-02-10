@@ -78,7 +78,7 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <MapPin className="w-3 h-3" />
-                    <span className={regionKey === "seoul" ? "region-seoul" : "region-london"}>
+                    <span className={regionColorClass(regionKey)}>
                       {snapshot.region}
                     </span>
                   </span>
