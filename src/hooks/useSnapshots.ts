@@ -10,6 +10,11 @@ export interface Snapshot {
   platform: string;
   linkedin_search_url: string;
   created_at: string;
+  job_title: string | null;
+  preview_snippet: string | null;
+  keyword_hits: string[];
+  keyword_score: number;
+  seniority_hint: boolean;
 }
 
 export function useSnapshots(filters?: {

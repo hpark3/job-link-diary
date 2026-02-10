@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ROLES, REGIONS, buildLinkedInSearchUrl, buildIndeedSearchUrl } from "@/lib/constants";
+import { ROLES, REGIONS, buildLinkedInSearchUrl, buildIndeedSearchUrl, extractSignals } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,22 +16,33 @@ export function GenerateButton() {
       const today = new Date().toISOString().split("T")[0];
 
       const rows = ROLES.flatMap((role) =>
-        REGIONS.flatMap((region) => [
-          {
-            date: today,
-            role,
-            region: region.name,
-            platform: "LinkedIn",
-            linkedin_search_url: buildLinkedInSearchUrl(role, region.geoId),
-          },
-          {
-            date: today,
-            role,
-            region: region.name,
-            platform: "Indeed",
-            linkedin_search_url: buildIndeedSearchUrl(role, region.indeedDomain, region.indeedLocation),
-          },
-        ])
+        REGIONS.flatMap((region) => {
+          const signals = extractSignals(role);
+          return [
+            {
+              date: today,
+              role,
+              region: region.name,
+              platform: "LinkedIn",
+              linkedin_search_url: buildLinkedInSearchUrl(role, region.geoId),
+              job_title: role,
+              keyword_hits: signals.keyword_hits,
+              keyword_score: signals.keyword_score,
+              seniority_hint: signals.seniority_hint,
+            },
+            {
+              date: today,
+              role,
+              region: region.name,
+              platform: "Indeed",
+              linkedin_search_url: buildIndeedSearchUrl(role, region.indeedDomain, region.indeedLocation),
+              job_title: role,
+              keyword_hits: signals.keyword_hits,
+              keyword_score: signals.keyword_score,
+              seniority_hint: signals.seniority_hint,
+            },
+          ];
+        })
       );
 
       const { error } = await supabase.from("snapshots").upsert(rows, {

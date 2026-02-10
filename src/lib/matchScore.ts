@@ -1,6 +1,6 @@
 import type { CandidateProfile } from "@/hooks/useProfile";
 import type { Snapshot } from "@/hooks/useSnapshots";
-import { REGIONS } from "@/lib/constants";
+import { REGIONS, SENIORITY_KEYWORDS } from "@/lib/constants";
 
 export interface MatchResult {
   score: number;
@@ -8,7 +8,7 @@ export interface MatchResult {
   reasons: string[];
 }
 
-/** Pure rule-based scoring using snapshot metadata only. */
+/** Rule-based scoring using snapshot metadata + job signals. */
 export function computeMatch(
   snapshot: Snapshot,
   profile: CandidateProfile
@@ -16,7 +16,7 @@ export function computeMatch(
   const reasons: string[] = [];
   let score = 0;
 
-  // --- Role match (0–40) ---
+  // --- Role match (0–35) ---
   if (profile.targetRoles.length > 0) {
     const exact = profile.targetRoles.some(
       (r) => r.toLowerCase() === snapshot.role.toLowerCase()
@@ -27,67 +27,63 @@ export function computeMatch(
         r.toLowerCase().includes(snapshot.role.toLowerCase())
     );
     if (exact) {
-      score += 40;
+      score += 35;
       reasons.push(`Exact role match: ${snapshot.role}`);
     } else if (partial) {
-      score += 25;
+      score += 20;
       reasons.push(`Partial role match: ${snapshot.role}`);
     } else {
       reasons.push("Role doesn't match your targets");
     }
   } else {
-    score += 20; // no preference = neutral
+    score += 17;
   }
 
-  // --- Region match (0–25) ---
+  // --- Region match (0–20) ---
   if (profile.preferredRegions.length > 0) {
     const regionKey =
       REGIONS.find((r) => r.name === snapshot.region)?.key ?? "";
     if (profile.preferredRegions.includes(regionKey)) {
-      score += 25;
+      score += 20;
       reasons.push(`Preferred region: ${snapshot.region}`);
     } else {
       reasons.push(`Region ${snapshot.region} is not in your preferences`);
     }
   } else {
-    score += 12;
-  }
-
-  // --- Domain / skill keyword match (0–20) ---
-  if (profile.skills.length > 0 || profile.domains.length > 0) {
-    const keywords = [...profile.skills, ...profile.domains].map((k) =>
-      k.toLowerCase()
-    );
-    const roleWords = snapshot.role.toLowerCase();
-    const hits = keywords.filter(
-      (kw) => roleWords.includes(kw) || kw.includes(roleWords.split(" ")[0])
-    );
-    const keyScore = Math.min(20, (hits.length / Math.max(keywords.length, 1)) * 20);
-    score += Math.round(keyScore);
-    if (hits.length > 0) {
-      reasons.push(`Skill/domain overlap: ${hits.join(", ")}`);
-    }
-  } else {
     score += 10;
   }
 
-  // --- Experience / seniority alignment (0–15) ---
-  const roleLower = snapshot.role.toLowerCase();
-  const seniorityHints: Record<string, string[]> = {
-    junior: ["junior", "associate", "entry", "intern"],
-    mid: ["analyst", "specialist", "coordinator"],
-    senior: ["senior", "lead", "principal", "staff"],
-    lead: ["lead", "head", "director", "manager", "vp"],
-  };
-  const myHints = seniorityHints[profile.experienceLevel] ?? [];
-  if (myHints.some((h) => roleLower.includes(h))) {
-    score += 15;
-    reasons.push(`Seniority aligns with ${profile.experienceLevel} level`);
-  } else {
-    score += 5;
+  // --- Keyword signal match (0–25) ---
+  const profileKeywords = [...profile.skills, ...profile.domains].map((k) => k.toLowerCase());
+  if (profileKeywords.length > 0 && snapshot.keyword_hits?.length > 0) {
+    const overlap = snapshot.keyword_hits.filter((hit) =>
+      profileKeywords.some((pk) => pk.includes(hit.toLowerCase()) || hit.toLowerCase().includes(pk))
+    );
+    const keyScore = Math.min(25, Math.round((overlap.length / Math.max(profileKeywords.length, 1)) * 25));
+    score += keyScore;
+    if (overlap.length > 0) {
+      reasons.push(`Keyword overlap: ${overlap.join(", ")}`);
+    }
+  } else if (profileKeywords.length === 0) {
+    score += 12;
   }
 
-  // Clamp
+  // --- Seniority alignment (0–20) ---
+  if (snapshot.seniority_hint) {
+    const myLevel = profile.experienceLevel;
+    const myWords = SENIORITY_KEYWORDS[myLevel] ?? [];
+    const roleLower = snapshot.role.toLowerCase();
+    if (myWords.some((w) => roleLower.includes(w))) {
+      score += 20;
+      reasons.push(`Seniority aligns with ${myLevel} level`);
+    } else {
+      score += 5;
+      reasons.push("Seniority detected but doesn't match your level");
+    }
+  } else {
+    score += 8;
+  }
+
   score = Math.max(0, Math.min(100, score));
 
   const level: MatchResult["level"] =
