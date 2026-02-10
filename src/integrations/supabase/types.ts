@@ -20,6 +20,7 @@ export type Database = {
           date: string
           id: string
           linkedin_search_url: string
+          platform: string
           region: string
           role: string
         }
@@ -28,6 +29,7 @@ export type Database = {
           date: string
           id?: string
           linkedin_search_url: string
+          platform?: string
           region: string
           role: string
         }
@@ -36,6 +38,7 @@ export type Database = {
           date?: string
           id?: string
           linkedin_search_url?: string
+          platform?: string
           region?: string
           role?: string
         }

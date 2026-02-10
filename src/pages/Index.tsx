@@ -13,6 +13,7 @@ const Index = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedRecency, setSelectedRecency] = useState<RecencyValue>("all");
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
 
   const regionName = selectedRegion
     ? REGIONS.find((r) => r.key === selectedRegion)?.name ?? undefined
@@ -26,6 +27,7 @@ const Index = () => {
     date: selectedDate ?? undefined,
     role: selectedRole ?? undefined,
     region: regionName,
+    platform: selectedPlatform ?? undefined,
     recencyDays,
   });
 
@@ -57,9 +59,11 @@ const Index = () => {
           selectedRole={selectedRole}
           selectedRegion={selectedRegion}
           selectedRecency={selectedRecency}
+          selectedPlatform={selectedPlatform}
           onRoleChange={setSelectedRole}
           onRegionChange={setSelectedRegion}
           onRecencyChange={handleRecencyChange}
+          onPlatformChange={setSelectedPlatform}
         />
 
         <section>

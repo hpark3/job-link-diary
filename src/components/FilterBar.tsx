@@ -1,22 +1,26 @@
-import { ROLES, REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
+import { ROLES, REGIONS, RECENCY_OPTIONS, PLATFORMS, type RecencyValue } from "@/lib/constants";
 import { Clock } from "lucide-react";
 
 interface FilterBarProps {
   selectedRole: string | null;
   selectedRegion: string | null;
   selectedRecency: RecencyValue;
+  selectedPlatform: string | null;
   onRoleChange: (role: string | null) => void;
   onRegionChange: (region: string | null) => void;
   onRecencyChange: (recency: RecencyValue) => void;
+  onPlatformChange: (platform: string | null) => void;
 }
 
 export function FilterBar({
   selectedRole,
   selectedRegion,
   selectedRecency,
+  selectedPlatform,
   onRoleChange,
   onRegionChange,
   onRecencyChange,
+  onPlatformChange,
 }: FilterBarProps) {
   return (
     <div className="space-y-4">
@@ -34,6 +38,28 @@ export function FilterBar({
               onClick={() => onRecencyChange(opt.value)}
             >
               {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Platform */}
+      <div>
+        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Platform</label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className={`filter-chip ${!selectedPlatform ? "active" : ""}`}
+            onClick={() => onPlatformChange(null)}
+          >
+            All
+          </button>
+          {PLATFORMS.map((platform) => (
+            <button
+              key={platform.key}
+              className={`filter-chip ${selectedPlatform === platform.name ? "active" : ""}`}
+              onClick={() => onPlatformChange(selectedPlatform === platform.name ? null : platform.name)}
+            >
+              {platform.icon} {platform.name}
             </button>
           ))}
         </div>

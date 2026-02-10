@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ROLES, REGIONS, buildLinkedInSearchUrl } from "@/lib/constants";
+import { ROLES, REGIONS, buildLinkedInSearchUrl, buildIndeedSearchUrl, buildGlassdoorSearchUrl } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,17 +14,35 @@ export function GenerateButton() {
     setLoading(true);
     try {
       const today = new Date().toISOString().split("T")[0];
+
       const rows = ROLES.flatMap((role) =>
-        REGIONS.map((region) => ({
-          date: today,
-          role,
-          region: region.name,
-          linkedin_search_url: buildLinkedInSearchUrl(role, region.geoId),
-        }))
+        REGIONS.flatMap((region) => [
+          {
+            date: today,
+            role,
+            region: region.name,
+            platform: "LinkedIn",
+            linkedin_search_url: buildLinkedInSearchUrl(role, region.geoId),
+          },
+          {
+            date: today,
+            role,
+            region: region.name,
+            platform: "Indeed",
+            linkedin_search_url: buildIndeedSearchUrl(role, region.indeedDomain, region.indeedLocation),
+          },
+          {
+            date: today,
+            role,
+            region: region.name,
+            platform: "Glassdoor",
+            linkedin_search_url: buildGlassdoorSearchUrl(role, region.glassdoorLocId),
+          },
+        ])
       );
 
       const { error } = await supabase.from("snapshots").upsert(rows, {
-        onConflict: "date,role,region",
+        onConflict: "date,role,region,platform",
       });
 
       if (error) throw error;
