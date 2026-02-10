@@ -5,6 +5,7 @@ import { FilterBar } from "@/components/FilterBar";
 import { DateNav } from "@/components/DateNav";
 import { SnapshotGrid } from "@/components/SnapshotGrid";
 import { GenerateButton } from "@/components/GenerateButton";
+import { ExportCSV } from "@/components/ExportCSV";
 import { StatsBar } from "@/components/StatsBar";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
