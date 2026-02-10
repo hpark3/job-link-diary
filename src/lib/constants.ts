@@ -3,6 +3,7 @@ export const ROLES = [
   "Product Analyst",
   "Product Operations",
   "Systems Analyst",
+  "Analyst OR Operations",
 ] as const;
 
 export const REGIONS = [
