@@ -20,6 +20,7 @@ const Index = () => {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedRecency, setSelectedRecency] = useState<RecencyValue>("all");
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("recent");
 
   const { profile, draft, setDraft, save, isDirty, isConfigured } = useProfile();
 
