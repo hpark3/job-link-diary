@@ -18,7 +18,6 @@ export type RegionKey = (typeof REGIONS)[number]["key"];
 export const PLATFORMS = [
   { name: "LinkedIn", key: "linkedin", icon: "🔗" },
   { name: "Indeed", key: "indeed", icon: "🟦" },
-  { name: "Glassdoor", key: "glassdoor", icon: "🟩" },
 ] as const;
 
 export type PlatformKey = (typeof PLATFORMS)[number]["key"];
