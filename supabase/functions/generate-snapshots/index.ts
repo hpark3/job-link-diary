@@ -11,6 +11,7 @@ const ROLES = [
 const REGIONS = [
   { name: "Seoul, South Korea", geoId: "105149562" },
   { name: "London, United Kingdom", geoId: "102257491" },
+  { name: "Singapore", geoId: "102454443" },
 ];
 
 function buildLinkedInSearchUrl(role: string, geoId: string): string {

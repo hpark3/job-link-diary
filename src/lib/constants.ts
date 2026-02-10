@@ -42,6 +42,8 @@ export const REGION_DESCRIPTIONS: Record<string, string> = {
     "Major tech hub in Asia. Growing demand in fintech, e-commerce, and enterprise SaaS. Korean language proficiency often preferred.",
   "London, United Kingdom":
     "Europe's largest financial and tech center. Strong demand across banking, consulting, and scale-ups. Global talent market.",
+  "Singapore":
+    "Asia-Pacific financial hub with strong demand in banking, fintech, and tech. English-speaking, multicultural work environment with competitive compensation.",
 };
 
 export function buildLinkedInSearchUrl(role: string, geoId: string): string {
