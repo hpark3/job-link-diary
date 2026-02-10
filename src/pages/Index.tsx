@@ -17,7 +17,7 @@ const Index = () => {
   const [selectedRecency, setSelectedRecency] = useState<RecencyValue>("all");
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
 
-  const { profile, setProfile, isConfigured } = useProfile();
+  const { profile, draft, setDraft, save, isDirty, isConfigured } = useProfile();
 
   const regionName = selectedRegion
     ? REGIONS.find((r) => r.key === selectedRegion)?.name ?? undefined
