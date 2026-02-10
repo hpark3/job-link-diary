@@ -49,6 +49,7 @@
     --surface-elevated: 230 30% 97%;
     --seoul: 200 70% 50%;
     --london: 340 65% 55%;
+    --singapore: 145 60% 42%;
     --font-heading: 'Poppins', sans-serif;
     --font-sans: 'Inter', system-ui, sans-serif;
   }
@@ -109,6 +110,9 @@
   }
   .region-london {
     color: hsl(var(--london));
+  }
+  .region-singapore {
+    color: hsl(var(--singapore));
   }
 
   .stat-value {

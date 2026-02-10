@@ -9,6 +9,7 @@ export const ROLES = [
 export const REGIONS = [
   { name: "Seoul, South Korea", key: "seoul", geoId: "105149562" },
   { name: "London, United Kingdom", key: "london", geoId: "102257491" },
+  { name: "Singapore", key: "singapore", geoId: "102454443" },
 ] as const;
 
 export type Role = (typeof ROLES)[number];
@@ -41,6 +42,8 @@ export const REGION_DESCRIPTIONS: Record<string, string> = {
     "Major tech hub in Asia. Growing demand in fintech, e-commerce, and enterprise SaaS. Korean language proficiency often preferred.",
   "London, United Kingdom":
     "Europe's largest financial and tech center. Strong demand across banking, consulting, and scale-ups. Global talent market.",
+  "Singapore":
+    "Asia-Pacific financial hub with strong demand in banking, fintech, and tech. English-speaking, multicultural work environment with competitive compensation.",
 };
 
 export function buildLinkedInSearchUrl(role: string, geoId: string): string {

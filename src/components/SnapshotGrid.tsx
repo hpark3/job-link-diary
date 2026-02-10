@@ -18,6 +18,11 @@ function getRegionKey(regionName: string): string {
   return found?.key ?? "seoul";
 }
 
+function regionColorClass(key: string): string {
+  const map: Record<string, string> = { seoul: "region-seoul", london: "region-london", singapore: "region-singapore" };
+  return map[key] ?? "region-seoul";
+}
+
 export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
   if (isLoading) {
     return (
@@ -73,7 +78,7 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <MapPin className="w-3 h-3" />
-                    <span className={regionKey === "seoul" ? "region-seoul" : "region-london"}>
+                    <span className={regionColorClass(regionKey)}>
                       {snapshot.region}
                     </span>
                   </span>
@@ -93,7 +98,7 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
                 </div>
                 <div className="border-t border-border pt-2">
                   <h4 className="text-xs font-semibold mb-1">
-                    <span className={regionKey === "seoul" ? "region-seoul" : "region-london"}>●</span>{" "}
+                    <span className={regionColorClass(regionKey)}>●</span>{" "}
                     {snapshot.region}
                   </h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">{regionDesc}</p>
