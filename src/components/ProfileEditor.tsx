@@ -80,9 +80,10 @@ function TagInput({
   );
 }
 
-export function ProfileEditor({ profile, onUpdate, isConfigured }: ProfileEditorProps) {
+export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }: ProfileEditorProps) {
   const [isParsing, setIsParsing] = useState(false);
   const [cvName, setCvName] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
