@@ -42,6 +42,18 @@ const Index = () => {
 
   const { data: dates = [] } = useAvailableDates();
 
+  const sortedSnapshots = useMemo(() => {
+    if (sortMode === "best-match" && isConfigured) {
+      return [...snapshots].sort((a, b) => {
+        const scoreA = computeMatch(a, profile).score;
+        const scoreB = computeMatch(b, profile).score;
+        return scoreB - scoreA;
+      });
+    }
+    // "recent" is already sorted by date desc from the query
+    return snapshots;
+  }, [snapshots, sortMode, profile, isConfigured]);
+
   const handleDateChange = (date: string | null) => {
     setSelectedDate(date);
     if (date) setSelectedRecency("all");
