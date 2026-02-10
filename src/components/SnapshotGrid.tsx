@@ -1,4 +1,5 @@
-import { ExternalLink, MapPin, Briefcase, Calendar, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ExternalLink, MapPin, Briefcase, Calendar, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Snapshot } from "@/hooks/useSnapshots";
 import { REGIONS, PLATFORMS, ROLE_DESCRIPTIONS, REGION_DESCRIPTIONS } from "@/lib/constants";
