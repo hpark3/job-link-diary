@@ -6,24 +6,40 @@ import { SnapshotGrid } from "@/components/SnapshotGrid";
 import { GenerateButton } from "@/components/GenerateButton";
 import { StatsBar } from "@/components/StatsBar";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
-import { REGIONS } from "@/lib/constants";
+import { REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
 
 const Index = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [selectedRecency, setSelectedRecency] = useState<RecencyValue>("all");
 
   const regionName = selectedRegion
     ? REGIONS.find((r) => r.key === selectedRegion)?.name ?? undefined
     : undefined;
 
+  const recencyDays = selectedDate
+    ? null
+    : RECENCY_OPTIONS.find((o) => o.value === selectedRecency)?.days ?? null;
+
   const { data: snapshots = [], isLoading } = useSnapshots({
     date: selectedDate ?? undefined,
     role: selectedRole ?? undefined,
     region: regionName,
+    recencyDays,
   });
 
   const { data: dates = [] } = useAvailableDates();
+
+  const handleDateChange = (date: string | null) => {
+    setSelectedDate(date);
+    if (date) setSelectedRecency("all");
+  };
+
+  const handleRecencyChange = (recency: RecencyValue) => {
+    setSelectedRecency(recency);
+    if (recency !== "all") setSelectedDate(null);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,22 +49,24 @@ const Index = () => {
         <StatsBar snapshots={snapshots} allDates={dates} />
 
         <div className="flex items-center justify-between">
-          <DateNav dates={dates} selectedDate={selectedDate} onDateChange={setSelectedDate} />
+          <DateNav dates={dates} selectedDate={selectedDate} onDateChange={handleDateChange} />
           <GenerateButton />
         </div>
 
         <FilterBar
           selectedRole={selectedRole}
           selectedRegion={selectedRegion}
+          selectedRecency={selectedRecency}
           onRoleChange={setSelectedRole}
           onRegionChange={setSelectedRegion}
+          onRecencyChange={handleRecencyChange}
         />
 
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
+            <h2 className="text-sm text-muted-foreground uppercase tracking-wider">
               Snapshots
-              <span className="text-primary ml-2">{snapshots.length}</span>
+              <span className="text-accent font-semibold ml-2">{snapshots.length}</span>
             </h2>
           </div>
           <SnapshotGrid snapshots={snapshots} isLoading={isLoading} />

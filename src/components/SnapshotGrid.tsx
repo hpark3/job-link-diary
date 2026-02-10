@@ -1,7 +1,12 @@
-import { ExternalLink, MapPin, Briefcase, Calendar } from "lucide-react";
+import { ExternalLink, MapPin, Briefcase, Calendar, Info } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Snapshot } from "@/hooks/useSnapshots";
-import { REGIONS } from "@/lib/constants";
+import { REGIONS, ROLE_DESCRIPTIONS, REGION_DESCRIPTIONS } from "@/lib/constants";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface SnapshotGridProps {
   snapshots: Snapshot[];
@@ -42,35 +47,63 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {snapshots.map((snapshot) => {
         const regionKey = getRegionKey(snapshot.region);
-        return (
-          <a
-            key={snapshot.id}
-            href={snapshot.linkedin_search_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="snapshot-card group block"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Briefcase className="w-3.5 h-3.5 text-primary" />
-                <span className="text-sm font-medium text-foreground">{snapshot.role}</span>
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
+        const roleDesc = ROLE_DESCRIPTIONS[snapshot.role] ?? "";
+        const regionDesc = REGION_DESCRIPTIONS[snapshot.region] ?? "";
 
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-3 h-3" />
-                <span className={regionKey === "seoul" ? "region-seoul" : "region-london"}>
-                  {snapshot.region}
-                </span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-3 h-3" />
-                <span className="font-mono">{format(parseISO(snapshot.date), "yyyy-MM-dd")}</span>
-              </span>
-            </div>
-          </a>
+        return (
+          <HoverCard key={snapshot.id} openDelay={200} closeDelay={100}>
+            <HoverCardTrigger asChild>
+              <a
+                href={snapshot.linkedin_search_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="snapshot-card group block"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-sm font-medium text-foreground">{snapshot.role}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Info className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors" />
+                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3" />
+                    <span className={regionKey === "seoul" ? "region-seoul" : "region-london"}>
+                      {snapshot.region}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3 h-3" />
+                    <span>{format(parseISO(snapshot.date), "yyyy-MM-dd")}</span>
+                  </span>
+                </div>
+              </a>
+            </HoverCardTrigger>
+
+            <HoverCardContent className="w-80 p-4" side="top" align="start">
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-accent mb-1">{snapshot.role}</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{roleDesc}</p>
+                </div>
+                <div className="border-t border-border pt-2">
+                  <h4 className="text-xs font-semibold mb-1">
+                    <span className={regionKey === "seoul" ? "region-seoul" : "region-london"}>●</span>{" "}
+                    {snapshot.region}
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{regionDesc}</p>
+                </div>
+                <div className="border-t border-border pt-2 text-xs text-muted-foreground/70">
+                  🔗 Click to open LinkedIn Jobs search for <strong>{snapshot.role}</strong> posted in the last 24 hours
+                </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
         );
       })}
     </div>
