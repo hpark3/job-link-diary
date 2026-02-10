@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { ArrowDownWideNarrow, Clock, Target } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterBar } from "@/components/FilterBar";
 import { DateNav } from "@/components/DateNav";
@@ -8,7 +9,10 @@ import { StatsBar } from "@/components/StatsBar";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
 import { useProfile } from "@/hooks/useProfile";
+import { computeMatch } from "@/lib/matchScore";
 import { REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
+
+type SortMode = "recent" | "best-match";
 
 const Index = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
