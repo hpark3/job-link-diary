@@ -34,7 +34,15 @@ function getPlatformIcon(platformName: string): string {
   return found?.icon ?? "🔗";
 }
 
+const PAGE_SIZE = 12;
+
 export function SnapshotGrid({ snapshots, isLoading, profile, isProfileConfigured }: SnapshotGridProps) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reset visible count when snapshots change (new filter/sort applied)
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [snapshots]);
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
