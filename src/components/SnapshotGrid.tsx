@@ -18,6 +18,11 @@ function getRegionKey(regionName: string): string {
   return found?.key ?? "seoul";
 }
 
+function regionColorClass(key: string): string {
+  const map: Record<string, string> = { seoul: "region-seoul", london: "region-london", singapore: "region-singapore" };
+  return map[key] ?? "region-seoul";
+}
+
 export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
   if (isLoading) {
     return (
