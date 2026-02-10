@@ -104,6 +104,8 @@ export function SnapshotGrid({ snapshots, isLoading, profile, isProfileConfigure
                     <span>{format(parseISO(snapshot.date), "yyyy-MM-dd")}</span>
                   </span>
                 </div>
+
+                {match && <MatchBadge match={match} />}
               </a>
             </HoverCardTrigger>
 
