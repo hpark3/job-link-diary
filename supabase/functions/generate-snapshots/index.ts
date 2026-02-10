@@ -59,13 +59,6 @@ Deno.serve(async (req) => {
           platform: "Indeed",
           linkedin_search_url: buildIndeedSearchUrl(role, region.indeedDomain, region.indeedLocation),
         },
-        {
-          date: today,
-          role,
-          region: region.name,
-          platform: "Glassdoor",
-          linkedin_search_url: buildGlassdoorSearchUrl(role, region.glassdoorLocId),
-        },
       ])
     );
 
