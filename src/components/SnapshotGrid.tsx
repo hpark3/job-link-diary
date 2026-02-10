@@ -98,7 +98,7 @@ export function SnapshotGrid({ snapshots, isLoading }: SnapshotGridProps) {
                 </div>
                 <div className="border-t border-border pt-2">
                   <h4 className="text-xs font-semibold mb-1">
-                    <span className={regionKey === "seoul" ? "region-seoul" : "region-london"}>●</span>{" "}
+                    <span className={regionColorClass(regionKey)}>●</span>{" "}
                     {snapshot.region}
                   </h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">{regionDesc}</p>

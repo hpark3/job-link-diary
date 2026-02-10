@@ -77,7 +77,7 @@ export function FilterBar({
               className={`filter-chip ${selectedRegion === region.key ? "active" : ""}`}
               onClick={() => onRegionChange(selectedRegion === region.key ? null : region.key)}
             >
-              <span className={region.key === "seoul" ? "region-seoul" : "region-london"}>●</span>{" "}
+              <span className={`region-${region.key}`}>●</span>{" "}
               {region.name}
             </button>
           ))}
