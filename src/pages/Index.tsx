@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { ArrowDownWideNarrow, Clock, Target } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterBar } from "@/components/FilterBar";
 import { DateNav } from "@/components/DateNav";
@@ -8,7 +9,10 @@ import { StatsBar } from "@/components/StatsBar";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
 import { useProfile } from "@/hooks/useProfile";
+import { computeMatch } from "@/lib/matchScore";
 import { REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
+
+type SortMode = "recent" | "best-match";
 
 const Index = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -16,6 +20,7 @@ const Index = () => {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedRecency, setSelectedRecency] = useState<RecencyValue>("all");
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("recent");
 
   const { profile, draft, setDraft, save, isDirty, isConfigured } = useProfile();
 
@@ -36,6 +41,18 @@ const Index = () => {
   });
 
   const { data: dates = [] } = useAvailableDates();
+
+  const sortedSnapshots = useMemo(() => {
+    if (sortMode === "best-match" && isConfigured) {
+      return [...snapshots].sort((a, b) => {
+        const scoreA = computeMatch(a, profile).score;
+        const scoreB = computeMatch(b, profile).score;
+        return scoreB - scoreA;
+      });
+    }
+    // "recent" is already sorted by date desc from the query
+    return snapshots;
+  }, [snapshots, sortMode, profile, isConfigured]);
 
   const handleDateChange = (date: string | null) => {
     setSelectedDate(date);
@@ -77,11 +94,31 @@ const Index = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm text-muted-foreground uppercase tracking-wider">
               Snapshots
-              <span className="text-accent font-semibold ml-2">{snapshots.length}</span>
+              <span className="text-accent font-semibold ml-2">{sortedSnapshots.length}</span>
             </h2>
+            <div className="flex items-center gap-1.5">
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground mr-1">Sort</span>
+              <button
+                className={`filter-chip text-xs gap-1 inline-flex items-center ${sortMode === "recent" ? "active" : ""}`}
+                onClick={() => setSortMode("recent")}
+              >
+                <Clock className="w-3 h-3" />
+                Recent
+              </button>
+              <button
+                className={`filter-chip text-xs gap-1 inline-flex items-center ${sortMode === "best-match" ? "active" : ""}`}
+                onClick={() => setSortMode("best-match")}
+                disabled={!isConfigured}
+                title={!isConfigured ? "Upload CV to enable match sorting" : ""}
+              >
+                <Target className="w-3 h-3" />
+                Best Match
+              </button>
+            </div>
           </div>
           <SnapshotGrid
-            snapshots={snapshots}
+            snapshots={sortedSnapshots}
             isLoading={isLoading}
             profile={profile}
             isProfileConfigured={isConfigured}
