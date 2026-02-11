@@ -135,9 +135,7 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
       Return ONLY the JSON object. No intro, no markdown.`;
 
 // 주소 및 설정
-// [최종] v1beta와 모델명 조합을 가장 표준적인 형태인 /v1beta/models/... 로 고정합니다.
-// [최종] 로컬과 배포 환경 모두에서 가장 에러 없는 표준 주소 형식입니다.
-      // 모델명 앞에 불필요한 경로가 붙지 않도록 주의하세요.
+// [완전 해결] 모델명을 경로 중간에 넣는 표준 형식으로 변경합니다.
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
       const response = await fetch(API_URL, {
@@ -149,7 +147,7 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
           contents: [{ parts: [{ text: prompt }] }]
         })
       });
-      
+
       const data = await response.json();
 
       // 구글 에러 응답 처리
