@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+// BrowserRouter 대신 HashRouter를 가져옵니다.
+import { HashRouter, Routes, Route } from "react-router-dom"; 
 import Index from "./pages/Index";
 import JobDetail from "./pages/JobDetail";
 import Trends from "./pages/Trends";
@@ -15,14 +16,15 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      {/* HashRouter는 basename 설정이 필요 없으며 GitHub Pages에서 가장 안전합니다. */}
+      <HashRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/job/:id" element={<JobDetail />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
