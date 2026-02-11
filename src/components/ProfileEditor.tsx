@@ -122,45 +122,61 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
         text = await file.text();
       }
 
-      // --- [추가] Gemini API를 이용한 자동 분석 로직 ---
-      const API_KEY = "AIzaSyCsUCueexHzpyXaARDtMIl1Bj6kFqtWEEk"; // 사용자님의 키
-      const prompt = `
-        You are a recruitment assistant. Extract the following information from the resume text and return it ONLY as a valid JSON object.
-        - skills: Array of technical skills (e.g., ["Python", "SQL"])
-        - experienceLevel: Choose one of ["junior", "mid", "senior", "lead"]
-        - targetRoles: Array of role names (e.g., ["Data Analyst", "Backend Developer"])
-        - preferredRegions: Array of region keys. Available keys are: "seoul", "gyeonggi", "incheon", "daejeon", "daegu", "gwangju", "busan", "ulsan", "gangwon", "sejong", "remote".
+      const API_KEY = "AIzaSyCsUCueexHzpyXaARDtMIl1Bj6kFqtWEEk";
+      // 프롬프트를 조금 더 엄격하게 수정
+      const prompt = `Resume text: ${text.substring(0, 4000)}
+      
+      Extract information into JSON:
+      - skills: string array
+      - experienceLevel: "junior", "mid", "senior", or "lead"
+      - targetRoles: string array
+      - preferredRegions: Array from ["seoul", "gyeonggi", "incheon", "daejeon", "daegu", "gwangju", "busan", "ulsan", "gangwon", "sejong", "remote"]
+      
+      Return ONLY the JSON object. No intro, no markdown.`;
 
-        Resume text:
-        ${text.substring(0, 4000)} // 텍스트가 너무 길면 잘라서 전송
-      `;
+// 주소 및 설정
+// [최종] v1beta와 모델명 조합을 가장 표준적인 형태인 /v1beta/models/... 로 고정합니다.
+// [최종] 로컬과 배포 환경 모두에서 가장 에러 없는 표준 주소 형식입니다.
+      // 모델명 앞에 불필요한 경로가 붙지 않도록 주의하세요.
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch(API_URL, {
+        method: "POST", // [필수] GET 에러 방지
+        headers: { 
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { response_mime_type: "application/json" } // JSON으로 응답 강제
+          contents: [{ parts: [{ text: prompt }] }]
         })
       });
-
+      
       const data = await response.json();
-      const rawResult = data.candidates[0].content.parts[0].text;
-      const parsedData = JSON.parse(rawResult);
 
-      // AI가 분석한 데이터를 화면 프로필에 즉시 반영
+      // 구글 에러 응답 처리
+      if (data.error) {
+        throw new Error(`Gemini Error: ${data.error.message}`);
+      }
+
+      const rawResult = data.candidates[0].content.parts[0].text;
+
+      // [핵심] JSON만 추출하기 (마크다운 백틱 제거)
+      const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No JSON found in AI response");
+
+      const parsedData = JSON.parse(jsonMatch[0]);
+
       onUpdate({
-        skills: parsedData.skills || [],
-        experienceLevel: parsedData.experienceLevel || "junior",
-        targetRoles: parsedData.targetRoles || [],
-        preferredRegions: parsedData.preferredRegions || []
+        skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+        experienceLevel: ["junior", "mid", "senior", "lead"].includes(parsedData.experienceLevel) ? parsedData.experienceLevel : "junior",
+        targetRoles: Array.isArray(parsedData.targetRoles) ? parsedData.targetRoles : [],
+        preferredRegions: Array.isArray(parsedData.preferredRegions) ? parsedData.preferredRegions : []
       });
 
-      toast.success("AI has successfully analyzed your CV and updated your profile!");
+      toast.success("AI has successfully analyzed your CV!");
 
     } catch (err: any) {
-      console.error("AI Analysis error:", err);
-      toast.error("Failed to analyze CV with AI. But text was extracted!");
+      console.error("AI Analysis error details:", err);
+      toast.error(`Analysis failed: ${err.message || "Unknown error"}`);
     } finally {
       setIsParsing(false);
       if (fileRef.current) fileRef.current.value = "";
