@@ -21,6 +21,9 @@ export interface Snapshot {
   location_detail?: string | null;
   salary_range?: string | null;
   source_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distance_km?: number | null;
 }
 
 export function useSnapshots(filters?: {
