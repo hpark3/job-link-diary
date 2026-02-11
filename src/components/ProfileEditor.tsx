@@ -122,7 +122,7 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
         text = await file.text();
       }
 
-      const API_KEY = "AIzaSyCsUCueexHzpyXaARDtMIl1Bj6kFqtWEEk";
+      const API_KEY = "AIzaSyBADVIyU9FzxX2QzGpo4st0RhSz_KaNroI";
       // 프롬프트를 조금 더 엄격하게 수정
       const prompt = `Resume text: ${text.substring(0, 4000)}
       
