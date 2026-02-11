@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 import type { Snapshot } from "@/hooks/useSnapshots";
+import { getDistanceBandLabel } from "@/lib/geo";
 
 interface ExportCSVProps {
   snapshots: Snapshot[];
@@ -17,8 +18,10 @@ export function ExportCSV({ snapshots }: ExportCSVProps) {
   const exportCSV = () => {
     const headers = [
       "date", "role", "region", "platform", "job_title",
+      "company_name", "location_detail", "salary_range",
       "keyword_hits", "keyword_score", "seniority_hint",
-      "preview_snippet", "search_url",
+      "latitude", "longitude", "distance_km", "distance_band",
+      "preview_snippet", "search_url", "source_url",
     ];
 
     const rows = snapshots.map((s) => [
@@ -27,11 +30,19 @@ export function ExportCSV({ snapshots }: ExportCSVProps) {
       s.region,
       s.platform,
       s.job_title ?? s.role,
+      s.company_name ?? "",
+      s.location_detail ?? "",
+      s.salary_range ?? "",
       (s.keyword_hits ?? []).join("; "),
       s.keyword_score ?? 0,
       s.seniority_hint ? "Yes" : "No",
+      s.latitude ?? "",
+      s.longitude ?? "",
+      s.distance_km ?? "",
+      getDistanceBandLabel(s.distance_km),
       s.preview_snippet ?? "",
       s.linkedin_search_url,
+      s.source_url ?? "",
     ]);
 
     const csv = [

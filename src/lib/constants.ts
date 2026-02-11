@@ -55,6 +55,17 @@ export const REGIONS = [
   { name: "Singapore", key: "singapore", geoId: "102454443", indeedDomain: "sg.indeed.com", indeedLocation: "Singapore", glassdoorLocId: "3235921" },
 ] as const;
 
+/** Extended regions including distance-based UK classification */
+export const DISPLAY_REGIONS = [
+  { name: "Seoul, South Korea", key: "seoul" },
+  { name: "London, United Kingdom", key: "london" },
+  { name: "London – Inner", key: "london-inner" },
+  { name: "London – Outer", key: "london-outer" },
+  { name: "London – Commuter Belt", key: "london-commuter" },
+  { name: "UK – Remote / Hybrid", key: "uk-remote" },
+  { name: "Singapore", key: "singapore" },
+] as const;
+
 export type RegionKey = (typeof REGIONS)[number]["key"];
 
 export const PLATFORMS = [
