@@ -16,46 +16,100 @@ export type Database = {
     Tables: {
       snapshots: {
         Row: {
+          company_name: string | null
           created_at: string
           date: string
+          description: string | null
           id: string
           job_title: string | null
           keyword_hits: string[] | null
           keyword_score: number | null
           linkedin_search_url: string
+          location_detail: string | null
           platform: string
           preview_snippet: string | null
           region: string
           role: string
+          salary_range: string | null
           seniority_hint: boolean | null
+          skills: string[] | null
+          source_url: string | null
         }
         Insert: {
+          company_name?: string | null
           created_at?: string
           date: string
+          description?: string | null
           id?: string
           job_title?: string | null
           keyword_hits?: string[] | null
           keyword_score?: number | null
           linkedin_search_url: string
+          location_detail?: string | null
           platform?: string
           preview_snippet?: string | null
           region: string
           role: string
+          salary_range?: string | null
           seniority_hint?: boolean | null
+          skills?: string[] | null
+          source_url?: string | null
         }
         Update: {
+          company_name?: string | null
           created_at?: string
           date?: string
+          description?: string | null
           id?: string
           job_title?: string | null
           keyword_hits?: string[] | null
           keyword_score?: number | null
           linkedin_search_url?: string
+          location_detail?: string | null
           platform?: string
           preview_snippet?: string | null
           region?: string
           role?: string
+          salary_range?: string | null
           seniority_hint?: boolean | null
+          skills?: string[] | null
+          source_url?: string | null
+        }
+        Relationships: []
+      }
+      trend_metrics: {
+        Row: {
+          avg_keyword_score: number
+          created_at: string
+          date: string
+          id: string
+          new_jobs: number
+          region: string
+          role: string
+          top_skills: string[] | null
+          total_jobs: number
+        }
+        Insert: {
+          avg_keyword_score?: number
+          created_at?: string
+          date: string
+          id?: string
+          new_jobs?: number
+          region: string
+          role: string
+          top_skills?: string[] | null
+          total_jobs?: number
+        }
+        Update: {
+          avg_keyword_score?: number
+          created_at?: string
+          date?: string
+          id?: string
+          new_jobs?: number
+          region?: string
+          role?: string
+          top_skills?: string[] | null
+          total_jobs?: number
         }
         Relationships: []
       }

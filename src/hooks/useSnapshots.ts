@@ -15,6 +15,12 @@ export interface Snapshot {
   keyword_hits: string[];
   keyword_score: number;
   seniority_hint: boolean;
+  description?: string | null;
+  skills?: string[];
+  company_name?: string | null;
+  location_detail?: string | null;
+  salary_range?: string | null;
+  source_url?: string | null;
 }
 
 export function useSnapshots(filters?: {
