@@ -43,18 +43,18 @@ async function extractTextFromPDF(file: File): Promise<string> {
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
     let fullText = "";
-    
+
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      
+
       const strings = content.items
         .map((item: any) => item.str)
         .filter((str): str is string => typeof str === "string");
-        
+
       fullText += strings.join(" ") + "\n";
     }
-    
+
     if (!fullText.trim()) throw new Error("Could not extract text from PDF.");
     return fullText;
   } catch (err: any) {
@@ -73,12 +73,12 @@ function TagInput({ tags, onChange, placeholder }: { tags: string[], onChange: (
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
-        <Input 
-          value={input} 
-          onChange={(e) => setInput(e.target.value)} 
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())} 
-          placeholder={placeholder} 
-          className="text-sm" 
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
+          placeholder={placeholder}
+          className="text-sm"
         />
         <Button variant="outline" size="sm" onClick={addTag} type="button" className="shrink-0">
           <Plus className="w-4 h-4" />
@@ -122,15 +122,45 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
         text = await file.text();
       }
 
-      // [결과] 유료 AI 호출을 제거하고 성공 메시지만 띄웁니다.
-      toast.success("CV uploaded successfully! You can now manually fine-tune your profile.");
-      
-      // 팁: 추출된 텍스트가 잘 나오는지 궁금하다면 콘솔에서 확인 가능합니다.
-      // console.log("Extracted Text:", text);
+      // --- [추가] Gemini API를 이용한 자동 분석 로직 ---
+      const API_KEY = "AIzaSyCsUCueexHzpyXaARDtMIl1Bj6kFqtWEEk"; // 사용자님의 키
+      const prompt = `
+        You are a recruitment assistant. Extract the following information from the resume text and return it ONLY as a valid JSON object.
+        - skills: Array of technical skills (e.g., ["Python", "SQL"])
+        - experienceLevel: Choose one of ["junior", "mid", "senior", "lead"]
+        - targetRoles: Array of role names (e.g., ["Data Analyst", "Backend Developer"])
+        - preferredRegions: Array of region keys. Available keys are: "seoul", "gyeonggi", "incheon", "daejeon", "daegu", "gwangju", "busan", "ulsan", "gangwon", "sejong", "remote".
+
+        Resume text:
+        ${text.substring(0, 4000)} // 텍스트가 너무 길면 잘라서 전송
+      `;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { response_mime_type: "application/json" } // JSON으로 응답 강제
+        })
+      });
+
+      const data = await response.json();
+      const rawResult = data.candidates[0].content.parts[0].text;
+      const parsedData = JSON.parse(rawResult);
+
+      // AI가 분석한 데이터를 화면 프로필에 즉시 반영
+      onUpdate({
+        skills: parsedData.skills || [],
+        experienceLevel: parsedData.experienceLevel || "junior",
+        targetRoles: parsedData.targetRoles || [],
+        preferredRegions: parsedData.preferredRegions || []
+      });
+
+      toast.success("AI has successfully analyzed your CV and updated your profile!");
 
     } catch (err: any) {
-      console.error("Extraction error:", err);
-      toast.error("Failed to read the file. Please try again.");
+      console.error("AI Analysis error:", err);
+      toast.error("Failed to analyze CV with AI. But text was extracted!");
     } finally {
       setIsParsing(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -215,18 +245,18 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
             <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Experience Level</label>
             <div className="flex gap-2">
               {EXP_LEVELS.map((lvl) => (
-                <button 
-                  key={lvl.value} 
-                  className={`filter-chip text-[11px] px-4 ${draft.experienceLevel === lvl.value ? "active" : ""}`} 
+                <button
+                  key={lvl.value}
+                  className={`filter-chip text-[11px] px-4 ${draft.experienceLevel === lvl.value ? "active" : ""}`}
                   onClick={() => onUpdate({ experienceLevel: lvl.value })}
                 > {lvl.label} </button>
               ))}
             </div>
           </div>
 
-          <Button 
-            className="w-full gap-2 mt-4" 
-            disabled={!isDirty && !justSaved} 
+          <Button
+            className="w-full gap-2 mt-4"
+            disabled={!isDirty && !justSaved}
             onClick={() => { onSave(); setJustSaved(true); setTimeout(() => setJustSaved(false), 2000); }}
           >
             {justSaved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> {isDirty ? "Save Profile" : "No changes"}</>}
