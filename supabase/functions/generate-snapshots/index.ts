@@ -1,12 +1,29 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ROLES = [
+const SEARCH_QUERIES = [
   "Business Analyst",
   "Product Analyst",
   "Product Operations",
   "Systems Analyst",
-  "Analyst OR Operations",
+  "Business Operations",
+  "IT Operations",
+  "Business Process Analyst",
 ];
+
+function normalizeRole(raw: string): string {
+  const t = raw.toLowerCase();
+  if (t.includes("business process")) return "Business Process Analyst";
+  if (t.includes("system") && t.includes("analyst")) return "System Analyst";
+  if (t.includes("systems") && t.includes("analyst")) return "System Analyst";
+  if (t.includes("it") && t.includes("operat")) return "IT Operations";
+  if (t.includes("product") && t.includes("operat")) return "Business Operations";
+  if (t.includes("business") && t.includes("operat")) return "Business Operations";
+  if (t.includes("product") && t.includes("analyst")) return "Product Analyst";
+  if (t.includes("business") && t.includes("analyst")) return "Business Analyst";
+  if (t.includes("analyst")) return "Others";
+  if (t.includes("operat")) return "Others";
+  return "Others";
+}
 
 const REGIONS = [
   { name: "Seoul, South Korea", geoId: "105149562", indeedDomain: "kr.indeed.com", indeedLocation: "Seoul" },
@@ -65,16 +82,17 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().split("T")[0];
 
-    const rows = ROLES.flatMap((role) => {
-      const signals = extractSignals(role);
+    const rows = SEARCH_QUERIES.flatMap((query) => {
+      const signals = extractSignals(query);
+      const role = normalizeRole(query);
       return REGIONS.flatMap((region) => [
         {
           date: today,
           role,
           region: region.name,
           platform: "LinkedIn",
-          linkedin_search_url: buildLinkedInSearchUrl(role, region.geoId),
-          job_title: role,
+          linkedin_search_url: buildLinkedInSearchUrl(query, region.geoId),
+          job_title: query,
           keyword_hits: signals.keyword_hits,
           keyword_score: signals.keyword_score,
           seniority_hint: signals.seniority_hint,
@@ -84,8 +102,8 @@ Deno.serve(async (req) => {
           role,
           region: region.name,
           platform: "Indeed",
-          linkedin_search_url: buildIndeedSearchUrl(role, region.indeedDomain, region.indeedLocation),
-          job_title: role,
+          linkedin_search_url: buildIndeedSearchUrl(query, region.indeedDomain, region.indeedLocation),
+          job_title: query,
           keyword_hits: signals.keyword_hits,
           keyword_score: signals.keyword_score,
           seniority_hint: signals.seniority_hint,

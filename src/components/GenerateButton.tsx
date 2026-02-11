@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ROLES, REGIONS, buildLinkedInSearchUrl, buildIndeedSearchUrl, extractSignals } from "@/lib/constants";
+import { SEARCH_QUERIES, REGIONS, buildLinkedInSearchUrl, buildIndeedSearchUrl, extractSignals, normalizeRole } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,17 +15,18 @@ export function GenerateButton() {
     try {
       const today = new Date().toISOString().split("T")[0];
 
-      const rows = ROLES.flatMap((role) =>
+      const rows = SEARCH_QUERIES.flatMap((query) =>
         REGIONS.flatMap((region) => {
-          const signals = extractSignals(role);
+          const signals = extractSignals(query);
+          const role = normalizeRole(query);
           return [
             {
               date: today,
               role,
               region: region.name,
               platform: "LinkedIn",
-              linkedin_search_url: buildLinkedInSearchUrl(role, region.geoId),
-              job_title: role,
+              linkedin_search_url: buildLinkedInSearchUrl(query, region.geoId),
+              job_title: query,
               keyword_hits: signals.keyword_hits,
               keyword_score: signals.keyword_score,
               seniority_hint: signals.seniority_hint,
@@ -35,8 +36,8 @@ export function GenerateButton() {
               role,
               region: region.name,
               platform: "Indeed",
-              linkedin_search_url: buildIndeedSearchUrl(role, region.indeedDomain, region.indeedLocation),
-              job_title: role,
+              linkedin_search_url: buildIndeedSearchUrl(query, region.indeedDomain, region.indeedLocation),
+              job_title: query,
               keyword_hits: signals.keyword_hits,
               keyword_score: signals.keyword_score,
               seniority_hint: signals.seniority_hint,
