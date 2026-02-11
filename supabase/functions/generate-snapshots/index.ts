@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().split("T")[0];
 
-    const rows = SEARCH_QUERIES.flatMap((query) => {
+    const allRows = SEARCH_QUERIES.flatMap((query) => {
       const signals = extractSignals(query);
       const role = normalizeRole(query);
       return REGIONS.flatMap((region) => [
@@ -109,6 +109,15 @@ Deno.serve(async (req) => {
           seniority_hint: signals.seniority_hint,
         },
       ]);
+    });
+
+    // Deduplicate by conflict key
+    const seen = new Set<string>();
+    const rows = allRows.filter((r) => {
+      const key = `${r.date}|${r.role}|${r.region}|${r.platform}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
 
     const { error } = await supabase.from("snapshots").upsert(rows, {

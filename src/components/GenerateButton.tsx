@@ -15,7 +15,7 @@ export function GenerateButton() {
     try {
       const today = new Date().toISOString().split("T")[0];
 
-      const rows = SEARCH_QUERIES.flatMap((query) =>
+      const allRows = SEARCH_QUERIES.flatMap((query) =>
         REGIONS.flatMap((region) => {
           const signals = extractSignals(query);
           const role = normalizeRole(query);
@@ -45,6 +45,15 @@ export function GenerateButton() {
           ];
         })
       );
+
+      // Deduplicate by conflict key (date,role,region,platform) – first occurrence wins
+      const seen = new Set<string>();
+      const rows = allRows.filter((r) => {
+        const key = `${r.date}|${r.role}|${r.region}|${r.platform}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
 
       const { error } = await supabase.from("snapshots").upsert(rows, {
         onConflict: "date,role,region,platform",
