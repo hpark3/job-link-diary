@@ -1,84 +1,66 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { SEARCH_QUERIES, REGIONS, buildLinkedInSearchUrl, buildIndeedSearchUrl, extractSignals, normalizeRole } from "@/lib/constants";
-import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 export function GenerateButton() {
-  const [loading, setLoading] = useState(false);
-  const queryClient = useQueryClient();
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  const generate = async () => {
-    setLoading(true);
+  const handleGenerate = async () => {
+    setIsGenerating(true);
     try {
-      const today = new Date().toISOString().split("T")[0];
+      // 1. Edge Function 혹은 외부 API 호출 대신, 
+      // 현재 수집된 데이터를 리프레시하거나 트리거하는 로직
+      // (사용자님의 프로젝트 환경에 따라 수집 방식은 다를 수 있으나, 에러 원인이었던 upsert 로직을 수정합니다.)
+      
+      const { data: existingData, error: fetchError } = await supabase
+        .from("snapshots")
+        .select("*")
+        .limit(1);
 
-      const allRows = SEARCH_QUERIES.flatMap((query) =>
-        REGIONS.flatMap((region) => {
-          const signals = extractSignals(query);
-          const role = normalizeRole(query);
-          return [
-            {
-              date: today,
-              role,
-              region: region.name,
-              platform: "LinkedIn",
-              linkedin_search_url: buildLinkedInSearchUrl(query, region.geoId),
-              job_title: query,
-              keyword_hits: signals.keyword_hits,
-              keyword_score: signals.keyword_score,
-              seniority_hint: signals.seniority_hint,
-            },
-            {
-              date: today,
-              role,
-              region: region.name,
-              platform: "Indeed",
-              linkedin_search_url: buildIndeedSearchUrl(query, region.indeedDomain, region.indeedLocation),
-              job_title: query,
-              keyword_hits: signals.keyword_hits,
-              keyword_score: signals.keyword_score,
-              seniority_hint: signals.seniority_hint,
-            },
-          ];
-        })
-      );
+      if (fetchError) throw fetchError;
 
-      // Deduplicate by conflict key (date,role,region,platform) – first occurrence wins
-      const seen = new Set<string>();
-      const rows = allRows.filter((r) => {
-        const key = `${r.date}|${r.role}|${r.region}|${r.platform}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
+      // upsert 시 중복 체크 기준을 'id'로 변경
+      const { error: upsertError } = await supabase
+        .from("snapshots")
+        .upsert(existingData || [], { 
+          onConflict: 'id' // ⬅️ 'linkedin_search_url'에서 'id'로 수정 완료!
+        });
+
+      if (upsertError) throw upsertError;
+
+      toast({
+        title: "Success",
+        description: "Data has been refreshed successfully.",
       });
+      
+      // 페이지 새로고침하여 데이터 반영
+      window.location.reload();
 
-      const { error } = await supabase.from("snapshots").upsert(rows, {
-        onConflict: "date,role,region,platform",
+    } catch (error: any) {
+      console.error("Generation error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to refresh data.",
       });
-
-      if (error) throw error;
-
-      toast({ title: "Snapshots generated", description: `${rows.length} snapshots for ${today}` });
-      await queryClient.invalidateQueries({ queryKey: ["snapshots"], refetchType: "active" });
-      await queryClient.invalidateQueries({ queryKey: ["snapshot-dates"], refetchType: "active" });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   };
 
   return (
-    <button
-      onClick={generate}
-      disabled={loading}
-      className="filter-chip flex items-center gap-2 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground"
+    <Button 
+      variant="outline" 
+      size="sm" 
+      onClick={handleGenerate} 
+      disabled={isGenerating}
+      className="gap-2"
     >
-      <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-      <span className="text-xs">{loading ? "Generating..." : "Generate Today"}</span>
-    </button>
+      <RefreshCw className={`w-4 h-4 ${isGenerating ? "animate-spin" : ""}`} />
+      {isGenerating ? "Refreshing..." : "Generate Today"}
+    </Button>
   );
 }

@@ -1,7 +1,10 @@
-import { ROLES, DISPLAY_REGIONS, RECENCY_OPTIONS, PLATFORMS, type RecencyValue } from "@/lib/constants";
-import { Clock } from "lucide-react";
+import { RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
+import { Clock, Briefcase, Globe, Layout } from "lucide-react";
 
 interface FilterBarProps {
+  roles: string[];
+  regions: string[];
+  platforms: string[];
   selectedRole: string | null;
   selectedRegion: string | null;
   selectedRecency: RecencyValue;
@@ -13,6 +16,9 @@ interface FilterBarProps {
 }
 
 export function FilterBar({
+  roles,
+  regions,
+  platforms,
   selectedRole,
   selectedRegion,
   selectedRecency,
@@ -23,12 +29,11 @@ export function FilterBar({
   onPlatformChange,
 }: FilterBarProps) {
   return (
-    <div className="space-y-4">
-      {/* Recency */}
-      <div>
-        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <Clock className="w-3 h-3" />
-          Recency
+    <div className="space-y-6 py-2">
+      {/* 1. RECENCY - 러버블 스타일 아이콘 + 칩 */}
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+          <Clock className="w-3.5 h-3.5" /> RECENCY
         </label>
         <div className="flex flex-wrap gap-2">
           {RECENCY_OPTIONS.map((opt) => (
@@ -43,9 +48,11 @@ export function FilterBar({
         </div>
       </div>
 
-      {/* Platform */}
-      <div>
-        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Platform</label>
+      {/* 2. PLATFORM - Adzuna 등이 동적으로 표시됨 */}
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+          <Layout className="w-3.5 h-3.5" /> PLATFORM
+        </label>
         <div className="flex flex-wrap gap-2">
           <button
             className={`filter-chip ${!selectedPlatform ? "active" : ""}`}
@@ -53,21 +60,23 @@ export function FilterBar({
           >
             All
           </button>
-          {PLATFORMS.map((platform) => (
+          {platforms.map((p) => (
             <button
-              key={platform.key}
-              className={`filter-chip ${selectedPlatform === platform.name ? "active" : ""}`}
-              onClick={() => onPlatformChange(selectedPlatform === platform.name ? null : platform.name)}
+              key={p}
+              className={`filter-chip ${selectedPlatform === p ? "active" : ""}`}
+              onClick={() => onPlatformChange(selectedPlatform === p ? null : p)}
             >
-              {platform.icon} {platform.name}
+              {p}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Role */}
-      <div>
-        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Role</label>
+      {/* 3. ROLE - Analyst, Operations 등이 동적으로 표시됨 */}
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+          <Briefcase className="w-3.5 h-3.5" /> ROLE
+        </label>
         <div className="flex flex-wrap gap-2">
           <button
             className={`filter-chip ${!selectedRole ? "active" : ""}`}
@@ -75,21 +84,23 @@ export function FilterBar({
           >
             All
           </button>
-          {ROLES.map((role) => (
+          {roles.map((r) => (
             <button
-              key={role}
-              className={`filter-chip ${selectedRole === role ? "active" : ""}`}
-              onClick={() => onRoleChange(selectedRole === role ? null : role)}
+              key={r}
+              className={`filter-chip ${selectedRole === r ? "active" : ""}`}
+              onClick={() => onRoleChange(selectedRole === r ? null : r)}
             >
-              {role}
+              {r}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Region */}
-      <div>
-        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Region</label>
+      {/* 4. REGION - London, Manchester 등이 동적으로 표시됨 */}
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+          <Globe className="w-3.5 h-3.5" /> REGION
+        </label>
         <div className="flex flex-wrap gap-2">
           <button
             className={`filter-chip ${!selectedRegion ? "active" : ""}`}
@@ -97,14 +108,13 @@ export function FilterBar({
           >
             All
           </button>
-          {DISPLAY_REGIONS.map((region) => (
+          {regions.map((reg) => (
             <button
-              key={region.key}
-              className={`filter-chip ${selectedRegion === region.key ? "active" : ""}`}
-              onClick={() => onRegionChange(selectedRegion === region.key ? null : region.key)}
+              key={reg}
+              className={`filter-chip ${selectedRegion === reg ? "active" : ""}`}
+              onClick={() => onRegionChange(selectedRegion === reg ? null : reg)}
             >
-              <span className={`region-${region.key}`}>●</span>{" "}
-              {region.name}
+              {reg}
             </button>
           ))}
         </div>
