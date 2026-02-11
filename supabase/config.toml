@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.parse-cv]
 verify_jwt = false
+
+[functions.ingest-jobs]
+verify_jwt = false

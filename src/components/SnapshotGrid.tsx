@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ExternalLink, MapPin, Briefcase, Calendar, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Snapshot } from "@/hooks/useSnapshots";
@@ -85,10 +86,8 @@ export function SnapshotGrid({ snapshots, isLoading, profile, isProfileConfigure
           return (
             <HoverCard key={snapshot.id} openDelay={200} closeDelay={100}>
               <HoverCardTrigger asChild>
-                <a
-                  href={snapshot.linkedin_search_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to={`/job/${snapshot.id}`}
                   className="snapshot-card group block animate-fade-in"
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -136,7 +135,7 @@ export function SnapshotGrid({ snapshots, isLoading, profile, isProfileConfigure
                   )}
 
                   {match && <MatchBadge match={match} />}
-                </a>
+                </Link>
               </HoverCardTrigger>
 
               <HoverCardContent className="w-80 p-4" side="top" align="start">
