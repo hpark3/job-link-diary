@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ArrowDownWideNarrow, Clock, Target, Ruler, Search, X, Zap } from "lucide-react";
+import { Clock, Target, Ruler, Search, X, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterBar } from "@/components/FilterBar";
@@ -14,13 +14,13 @@ import { useProfile } from "@/hooks/useProfile";
 import { computeMatch } from "@/lib/matchScore";
 import { RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
 import { Tables } from "@/integrations/supabase/types";
+import { classifyUKRegion } from "@/lib/geo";
 
 type Snapshot = Tables<"snapshots"> & {
   category?: string | null;
   captured_at?: string | null;
 };
 
-// 정렬 모드에 'distance' 추가
 type SortMode = "recent" | "best-match" | "distance";
 
 const Index = () => {
@@ -49,27 +49,67 @@ const Index = () => {
     }) : null;
   }, [snapshots]);
 
+  // 1. 동적 필터 생성 (geo.ts의 분류 함수 기준)
+  // Index.tsx 내 dynamicFilters 부분
+
   const dynamicFilters = useMemo(() => {
     const roles = new Set<string>();
     const regions = new Set<string>();
     const platforms = new Set<string>();
+
     snapshots.forEach((s) => {
       if (s.category) roles.add(s.category);
-      if (s.region) regions.add(s.region);
       if (s.platform) platforms.add(s.platform);
+
+      const regionLabel = classifyUKRegion(s.distance_km, s.location_detail);
+      regions.add(regionLabel);
     });
+
+    // [수정] 필터 표시 순서를 강제로 지정합니다.
+    const regionOrder = [
+      "London – Inner",
+      "London – Outer",
+      "London – Commuter Belt",
+      "Greater Manchester",
+      "UK – Regional",
+      "UK – Remote",
+      "UK – Hybrid"
+    ];
+
     return {
       roles: Array.from(roles).sort(),
-      regions: Array.from(regions).sort(),
+      // 지정된 순서대로 정렬하되, 목록에 없는 항목은 맨 뒤로 보냅니다.
+      regions: Array.from(regions).sort((a, b) => {
+        const indexA = regionOrder.indexOf(a);
+        const indexB = regionOrder.indexOf(b);
+        const posA = indexA === -1 ? 999 : indexA;
+        const posB = indexB === -1 ? 999 : indexB;
+        return posA - posB;
+      }),
       platforms: Array.from(platforms).sort(),
     };
   }, [snapshots]);
 
+  // 2. 데이터 필터링 로직
   const filteredSnapshots = useMemo(() => {
     let result = [...snapshots];
-    if (selectedRole) result = result.filter((s) => (s.category ?? "").toLowerCase() === selectedRole.toLowerCase());
-    if (selectedPlatform) result = result.filter((s) => s.platform === selectedPlatform);
-    if (selectedRegion) result = result.filter((s) => s.region === selectedRegion);
+
+    if (selectedRole) {
+      result = result.filter((s) => (s.category ?? "").toLowerCase() === selectedRole.toLowerCase());
+    }
+
+    if (selectedPlatform) {
+      result = result.filter((s) => s.platform === selectedPlatform);
+    }
+
+    // [핵심] 선택된 필터 버튼과 공고의 실시간 분류 결과가 일치하는 것만 거름
+    if (selectedRegion) {
+      result = result.filter((s) => {
+        const currentLabel = classifyUKRegion(s.distance_km, s.location_detail);
+        return currentLabel === selectedRegion;
+      });
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((s) =>
@@ -77,7 +117,7 @@ const Index = () => {
         (s.company_name ?? "").toLowerCase().includes(q)
       );
     }
-    // [복구] 스킬 태그 필터 로직
+
     if (selectedSkill) {
       result = result.filter((s) =>
         s.skills?.some((sk) => sk.toLowerCase() === selectedSkill.toLowerCase()) ||
@@ -87,33 +127,17 @@ const Index = () => {
     return result;
   }, [snapshots, selectedRole, selectedPlatform, selectedRegion, searchQuery, selectedSkill]);
 
-  // [복구] 스킬 태그 클라우드 추출
-  // 4. 스킬 태그 추출 로직 강화
+  // 3. 스킬 태그 추출
   const allSkills = useMemo(() => {
     const set = new Set<string>();
-
-    // 현재 필터링된 데이터가 아닌, '전체 snapshots'에서 스킬을 추출해야 
-    // 사용자가 선택할 수 있는 태그가 항상 보입니다.
     snapshots.forEach((s) => {
-      // skills 필드 체크
-      if (Array.isArray(s.skills)) {
-        s.skills.forEach((sk) => {
-          if (sk) set.add(sk.trim());
-        });
-      }
-      // keyword_hits 필드 체크 (Adzuna 데이터 대응)
-      if (Array.isArray(s.keyword_hits)) {
-        s.keyword_hits.forEach((kw) => {
-          if (kw) set.add(kw.trim());
-        });
-      }
+      if (Array.isArray(s.skills)) s.skills.forEach((sk) => sk && set.add(sk.trim()));
+      if (Array.isArray(s.keyword_hits)) s.keyword_hits.forEach((kw) => kw && set.add(kw.trim()));
     });
-
-    // 데이터가 너무 많을 수 있으므로 알파벳순 정렬 후 상위 20개만 노출
     return Array.from(set).sort().slice(0, 20);
-  }, [snapshots]); // filteredSnapshots 대신 snapshots를 감시하여 태그 유지
+  }, [snapshots]);
 
-  // [복구] 정렬 시스템 (Recent, Best Match, Nearest)
+  // 4. 정렬 로직
   const sortedSnapshots = useMemo(() => {
     const result = [...filteredSnapshots];
     if (sortMode === "best-match" && isConfigured) {
@@ -193,9 +217,7 @@ const Index = () => {
           </div>
         </div>
 
-        {/* [복구] Skills 태그 클라우드 */}
-        {/* [화면 렌더링 부분] - 데이터가 있을 때만 렌더링 */}
-        {allSkills.length > 0 ? (
+        {allSkills.length > 0 && (
           <div className="space-y-3 pt-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               <Zap className="w-3 h-3 text-amber-500 fill-amber-500" /> Hot Skills
@@ -222,9 +244,6 @@ const Index = () => {
                 ))}
             </div>
           </div>
-        ) : (
-          /* 스킬 데이터가 없을 때 표시될 임시 메시지 (디버깅용) */
-          <p className="text-[10px] text-slate-400 italic">No skills extracted from current data.</p>
         )}
 
         <section className="space-y-6 pt-4">
@@ -233,7 +252,6 @@ const Index = () => {
               Snapshots <span className="text-slate-900 mx-1">{sortedSnapshots.length}</span>
             </h2>
 
-            {/* [복구] 정렬 버튼 그룹 (Recent, Best Match, Nearest) */}
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
                 onClick={() => setSortMode("recent")}

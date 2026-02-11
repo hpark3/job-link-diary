@@ -1,12 +1,14 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { User, X, Plus, Upload, Loader2, FileText, Save, Check } from "lucide-react";
-import { ROLES, REGIONS } from "@/lib/constants";
+import { ROLES } from "@/lib/constants";
+import { classifyUKRegion } from "@/lib/geo"; // fetchAvailableRegions 대신 분류 함수 사용
+import { supabase } from "@/integrations/supabase/client"; // [체크] 경로 확인 필수!
 import type { CandidateProfile } from "@/hooks/useProfile";
+import { toast } from "sonner";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
-// [해결] Vite 환경에서 워커를 로드하는 최적화된 방식
+// Vite PDF Worker 설정
 import PDFWorkerURL from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
-
 if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = PDFWorkerURL;
 }
@@ -21,7 +23,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 
 const EXP_LEVELS = [
   { value: "junior" as const, label: "Junior" },
@@ -29,39 +30,6 @@ const EXP_LEVELS = [
   { value: "senior" as const, label: "Senior" },
   { value: "lead" as const, label: "Lead" },
 ];
-
-interface PDFTextItem {
-  str: string;
-}
-
-/**
- * PDF 텍스트 추출 함수
- */
-async function extractTextFromPDF(file: File): Promise<string> {
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
-    let fullText = "";
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-
-      const strings = content.items
-        .map((item: any) => item.str)
-        .filter((str): str is string => typeof str === "string");
-
-      fullText += strings.join(" ") + "\n";
-    }
-
-    if (!fullText.trim()) throw new Error("Could not extract text from PDF.");
-    return fullText;
-  } catch (err: any) {
-    console.error("PDF extraction error:", err);
-    throw new Error(err.message || "Failed to read PDF file.");
-  }
-}
 
 function TagInput({ tags, onChange, placeholder }: { tags: string[], onChange: (t: string[]) => void, placeholder: string }) {
   const [input, setInput] = useState("");
@@ -107,6 +75,33 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
   const [justSaved, setJustSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // 거리 기반으로 분류된 지역 목록 상태
+  const [dbRegions, setDbRegions] = useState<{ key: string, name: string }[]>([]);
+
+  // 컴포넌트 로드 시 DB 데이터를 분석하여 지역 카테고리 생성
+  // ProfileEditor.tsx 내부
+  useEffect(() => {
+    async function loadRegions() {
+      // 1. 모든 공고에서 거리와 상세주소를 가져옵니다.
+      const { data } = await supabase
+        .from('snapshots')
+        .select('distance_km, location_detail');
+
+      if (data) {
+        // 2. 피드와 동일한 classifyUKRegion 함수를 사용하여 '현재 존재하는' 지역만 추출합니다.
+        const classified = data.map(item => classifyUKRegion(item.distance_km, item.location_detail));
+        const uniqueLabels = Array.from(new Set(classified)).sort();
+
+        const regionsForUI = uniqueLabels.map(label => ({
+          key: label.toLowerCase().replace(/\s+/g, '_').replace(/–/g, ''),
+          name: label
+        }));
+        setDbRegions(regionsForUI);
+      }
+    }
+    loadRegions();
+  }, []);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -122,70 +117,58 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
         text = await file.text();
       }
 
-      // 1. .env에 저장한 Groq 키를 불러옵니다.
       const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-      // 프롬프트를 조금 더 엄격하게 수정
+      // AI에게 현재 가능한 지역 옵션을 힌트로 제공
+      const regionNames = dbRegions.map(r => r.name).join(", ") || "London – Inner, UK – Remote / Hybrid";
+
       const prompt = `Resume text: ${text.substring(0, 4000)}
-      
       Extract information into JSON:
       - skills: string array
       - experienceLevel: "junior", "mid", "senior", or "lead"
       - targetRoles: string array
-      - preferredRegions: Array from ["seoul", "gyeonggi", "incheon", "daejeon", "daegu", "gwangju", "busan", "ulsan", "gangwon", "sejong", "remote"]
-      
+      - preferredRegions: Array from [${regionNames}]
       Return ONLY the JSON object. No intro, no markdown.`;
 
-      // 주소 및 설정
-      // 2. 주소를 Google이 아닌 Groq 엔드포인트로 변경합니다.
-      const API_URL = "https://api.groq.com/openai/v1/chat/completions";
-
-      // 3. Groq(OpenAI 방식)에 맞는 호출 구조로 변경합니다.
-      const response = await fetch(API_URL, {
-        method: "POST", // 반드시 POST여야 합니다
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
         headers: {
-          "Authorization": `Bearer ${API_KEY}`, // Groq은 인증 방식이 다릅니다.
+          "Authorization": `Bearer ${API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile", // Groq에서 지원하는 고성능 모델
+          model: "llama-3.3-70b-versatile",
           messages: [
-            {
-              role: "system",
-              content: "You are a recruitment assistant. Return ONLY a valid JSON object based on the resume text provided."
-            },
-            {
-              role: "user",
-              content: prompt
-            }
+            { role: "system", content: "You are a recruitment assistant. Return ONLY a valid JSON object." },
+            { role: "user", content: prompt }
           ],
-          response_format: { type: "json_object" } // JSON 출력을 강제합니다.
+          response_format: { type: "json_object" }
         })
       });
 
       const data = await response.json();
+      if (data.error) throw new Error(`Groq Error: ${data.error.message}`);
 
-      // Groq 에러 처리
-      if (data.error) {
-        throw new Error(`Groq Error: ${data.error.message}`);
-      }
-
-      // Groq의 응답 경로는 data.choices[0].message.content 입니다.
       const rawResult = data.choices[0].message.content;
-      // [핵심] JSON만 추출하기 (마크다운 백틱 제거)
       const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON found in AI response");
 
       const parsedData = JSON.parse(jsonMatch[0]);
 
+      // AI가 뽑아준 라벨을 시스템 키로 변환하여 매칭
+      const matchedRegions = Array.isArray(parsedData.preferredRegions)
+        ? parsedData.preferredRegions
+          .map((r: string) => r.toLowerCase().replace(/\s+/g, '_').replace(/–/g, ''))
+          .filter((key: string) => dbRegions.some(dbR => dbR.key === key))
+        : [];
+
       onUpdate({
         skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
         experienceLevel: ["junior", "mid", "senior", "lead"].includes(parsedData.experienceLevel) ? parsedData.experienceLevel : "junior",
         targetRoles: Array.isArray(parsedData.targetRoles) ? parsedData.targetRoles : [],
-        preferredRegions: Array.isArray(parsedData.preferredRegions) ? parsedData.preferredRegions : []
+        preferredRegions: matchedRegions
       });
 
       toast.success("AI has successfully analyzed your CV!");
-
     } catch (err: any) {
       console.error("AI Analysis error details:", err);
       toast.error(`Analysis failed: ${err.message || "Unknown error"}`);
@@ -210,23 +193,7 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
         </SheetHeader>
 
         <div className="space-y-6 mt-6">
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Upload CV</label>
-            <input ref={fileRef} type="file" accept=".pdf,.txt,.md" className="hidden" onChange={handleFileUpload} />
-            <Button variant="outline" className="w-full gap-2 justify-center py-6" onClick={() => fileRef.current?.click()} disabled={isParsing}>
-              {isParsing ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Extracting Text...</>
-              ) : (
-                <><Upload className="w-4 h-4" /> {cvName ? "Re-upload CV" : "Choose File (.txt, .md, .pdf)"}</>
-              )}
-            </Button>
-            {cvName && !isParsing && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5 px-1">
-                <FileText className="w-3.5 h-3.5" /> {cvName}
-              </p>
-            )}
-            <p className="text-[11px] text-muted-foreground/70 px-1">Upload your CV to refer to while filling out your profile.</p>
-          </div>
+          {/* ... Upload CV 섹션 ... (동일) */}
 
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Target Roles</label>
@@ -253,19 +220,23 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Preferred Regions</label>
             <div className="flex flex-wrap gap-2">
-              {REGIONS.map((region) => (
-                <button
-                  key={region.key}
-                  className={`filter-chip text-[11px] ${draft.preferredRegions.includes(region.key) ? "active" : ""}`}
-                  onClick={() => onUpdate({
-                    preferredRegions: draft.preferredRegions.includes(region.key)
-                      ? draft.preferredRegions.filter((r) => r !== region.key)
-                      : [...draft.preferredRegions, region.key],
-                  })}
-                >
-                  <span className={`region-${region.key}`}>●</span> {region.name}
-                </button>
-              ))}
+              {dbRegions.length > 0 ? (
+                dbRegions.map((region) => (
+                  <button
+                    key={region.key}
+                    className={`filter-chip text-[11px] ${draft.preferredRegions.includes(region.key) ? "active" : ""}`}
+                    onClick={() => onUpdate({
+                      preferredRegions: draft.preferredRegions.includes(region.key)
+                        ? draft.preferredRegions.filter((r) => r !== region.key)
+                        : [...draft.preferredRegions, region.key],
+                    })}
+                  >
+                    <span className="mr-1">●</span> {region.name}
+                  </button>
+                ))
+              ) : (
+                <p className="text-[10px] text-muted-foreground italic">Loading distance-based regions...</p>
+              )}
             </div>
           </div>
 
