@@ -9,6 +9,7 @@ import { ExportCSV } from "@/components/ExportCSV";
 import { StatsBar } from "@/components/StatsBar";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { ApiAccessSection } from "@/components/ApiAccessSection";
+import { BackToTop } from "@/components/BackToTop";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
 import { useProfile } from "@/hooks/useProfile";
 import { computeMatch } from "@/lib/matchScore";
@@ -130,6 +131,8 @@ const Index = () => {
 
         <ApiAccessSection />
       </main>
+
+      <BackToTop />
     </div>
   );
 };
