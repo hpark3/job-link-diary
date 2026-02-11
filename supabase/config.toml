@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.ingest-jobs]
 verify_jwt = false
+
+[functions.geocode-snapshots]
+verify_jwt = false

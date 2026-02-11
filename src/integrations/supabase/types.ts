@@ -20,12 +20,15 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          distance_km: number | null
           id: string
           job_title: string | null
           keyword_hits: string[] | null
           keyword_score: number | null
+          latitude: number | null
           linkedin_search_url: string
           location_detail: string | null
+          longitude: number | null
           platform: string
           preview_snippet: string | null
           region: string
@@ -40,12 +43,15 @@ export type Database = {
           created_at?: string
           date: string
           description?: string | null
+          distance_km?: number | null
           id?: string
           job_title?: string | null
           keyword_hits?: string[] | null
           keyword_score?: number | null
+          latitude?: number | null
           linkedin_search_url: string
           location_detail?: string | null
+          longitude?: number | null
           platform?: string
           preview_snippet?: string | null
           region: string
@@ -60,12 +66,15 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          distance_km?: number | null
           id?: string
           job_title?: string | null
           keyword_hits?: string[] | null
           keyword_score?: number | null
+          latitude?: number | null
           linkedin_search_url?: string
           location_detail?: string | null
+          longitude?: number | null
           platform?: string
           preview_snippet?: string | null
           region?: string

@@ -6,6 +6,37 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Crystal Palace, London — fixed home base
+const HOME_LAT = 51.4183;
+const HOME_LNG = -0.0739;
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function geocode(location: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1&countrycodes=gb`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "JobRadar/1.0 (personal-project)" },
+    });
+    if (!res.ok) return null;
+    const results = await res.json();
+    if (results.length === 0) return null;
+    return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+  } catch {
+    return null;
+  }
+}
+
 interface IngestJob {
   date: string;
   role: string;
@@ -23,6 +54,8 @@ interface IngestJob {
   keyword_score?: number;
   seniority_hint?: boolean;
   preview_snippet?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 Deno.serve(async (req) => {
@@ -56,24 +89,54 @@ Deno.serve(async (req) => {
       }
     }
 
-    const rows = jobs.map((j) => ({
-      date: j.date,
-      role: j.role,
-      region: j.region,
-      platform: j.platform,
-      linkedin_search_url: j.linkedin_search_url ?? j.source_url ?? "",
-      source_url: j.source_url ?? null,
-      job_title: j.job_title ?? j.role,
-      company_name: j.company_name ?? null,
-      location_detail: j.location_detail ?? null,
-      salary_range: j.salary_range ?? null,
-      description: j.description ?? null,
-      skills: j.skills ?? [],
-      keyword_hits: j.keyword_hits ?? [],
-      keyword_score: j.keyword_score ?? 0,
-      seniority_hint: j.seniority_hint ?? false,
-      preview_snippet: j.preview_snippet ?? (j.description ? j.description.slice(0, 200) : null),
-    }));
+    const rows = [];
+
+    for (const j of jobs) {
+      let latitude = j.latitude ?? null;
+      let longitude = j.longitude ?? null;
+      let distance_km: number | null = null;
+
+      // Auto-geocode UK jobs with location_detail
+      if (
+        !latitude &&
+        j.region?.includes("United Kingdom") &&
+        j.location_detail
+      ) {
+        const coords = await geocode(j.location_detail);
+        if (coords) {
+          latitude = coords.lat;
+          longitude = coords.lng;
+        }
+        // Nominatim rate limit
+        await new Promise((r) => setTimeout(r, 1100));
+      }
+
+      if (latitude != null && longitude != null) {
+        distance_km = Math.round(haversineKm(HOME_LAT, HOME_LNG, latitude, longitude) * 10) / 10;
+      }
+
+      rows.push({
+        date: j.date,
+        role: j.role,
+        region: j.region,
+        platform: j.platform,
+        linkedin_search_url: j.linkedin_search_url ?? j.source_url ?? "",
+        source_url: j.source_url ?? null,
+        job_title: j.job_title ?? j.role,
+        company_name: j.company_name ?? null,
+        location_detail: j.location_detail ?? null,
+        salary_range: j.salary_range ?? null,
+        description: j.description ?? null,
+        skills: j.skills ?? [],
+        keyword_hits: j.keyword_hits ?? [],
+        keyword_score: j.keyword_score ?? 0,
+        seniority_hint: j.seniority_hint ?? false,
+        preview_snippet: j.preview_snippet ?? (j.description ? j.description.slice(0, 200) : null),
+        latitude,
+        longitude,
+        distance_km,
+      });
+    }
 
     const { error } = await supabase.from("snapshots").upsert(rows, {
       onConflict: "date,role,region,platform",

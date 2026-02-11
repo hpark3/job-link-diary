@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, TrendingUp, BarChart3, PieChart } from "lucide-react";
+import { ArrowLeft, TrendingUp, BarChart3, PieChart, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart as RePieChart, Pie, Cell, Legend,
 } from "recharts";
+import { DistanceBandChart } from "@/components/DistanceBandChart";
+import { JobMap } from "@/components/JobMap";
+import { DISTANCE_BANDS } from "@/lib/geo";
 
 const COLORS = [
   "hsl(230,65%,62%)", "hsl(8,78%,62%)", "hsl(200,70%,50%)",
@@ -19,7 +22,7 @@ export default function Trends() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("snapshots")
-        .select("date, role, region, platform, keyword_score, keyword_hits, skills")
+        .select("date, role, region, platform, keyword_score, keyword_hits, skills, id, latitude, longitude, distance_km, job_title, company_name, location_detail")
         .order("date", { ascending: true });
       if (error) throw error;
       return data as any[];
@@ -76,6 +79,11 @@ export default function Trends() {
     return [...new Set(snapshots.map((s) => s.region))];
   }, [snapshots]);
 
+  const ukSnapshots = useMemo(
+    () => snapshots.filter((s) => s.region === "London, United Kingdom"),
+    [snapshots]
+  );
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -104,7 +112,46 @@ export default function Trends() {
           </div>
           <div>
             <h1 className="text-xl font-semibold text-foreground">Trend Dashboard</h1>
-            <p className="text-xs text-muted-foreground">Job market trends over time</p>
+            <p className="text-xs text-muted-foreground">Job market trends · Home base: Crystal Palace, London</p>
+          </div>
+        </div>
+
+        {/* Commute-aware UK section */}
+        <div className="mb-8 space-y-6">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">London Commute Analysis</h2>
+            <span className="text-xs text-muted-foreground ml-1">
+              ({ukSnapshots.filter((s) => s.distance_km != null).length} geocoded of {ukSnapshots.length} UK snapshots)
+            </span>
+          </div>
+
+          {/* Distance band legend */}
+          <div className="flex flex-wrap gap-3">
+            {DISTANCE_BANDS.map((b) => (
+              <span key={b.label} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: b.color }} />
+                {b.label}
+              </span>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Map */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Job Locations from Crystal Palace
+              </h3>
+              <JobMap jobs={ukSnapshots} />
+            </div>
+
+            {/* Distance band chart */}
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Jobs by Distance Band Over Time
+              </h3>
+              <DistanceBandChart snapshots={ukSnapshots} />
+            </div>
           </div>
         </div>
 
