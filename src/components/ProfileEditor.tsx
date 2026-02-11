@@ -122,7 +122,8 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
         text = await file.text();
       }
 
-      const API_KEY = "AIzaSyBADVIyU9FzxX2QzGpo4st0RhSz_KaNroI";
+      // 1. .env에 저장한 Groq 키를 불러옵니다.
+      const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
       // 프롬프트를 조금 더 엄격하게 수정
       const prompt = `Resume text: ${text.substring(0, 4000)}
       
@@ -134,29 +135,42 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
       
       Return ONLY the JSON object. No intro, no markdown.`;
 
-// 주소 및 설정
-// [진짜 최종] 리스트에서 확인된 지원 모델명을 사용합니다.
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+      // 주소 및 설정
+      // 2. 주소를 Google이 아닌 Groq 엔드포인트로 변경합니다.
+      const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
+      // 3. Groq(OpenAI 방식)에 맞는 호출 구조로 변경합니다.
       const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json" 
+        method: "POST", // 반드시 POST여야 합니다
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`, // Groq은 인증 방식이 다릅니다.
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          model: "llama-3.3-70b-versatile", // Groq에서 지원하는 고성능 모델
+          messages: [
+            {
+              role: "system",
+              content: "You are a recruitment assistant. Return ONLY a valid JSON object based on the resume text provided."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" } // JSON 출력을 강제합니다.
         })
       });
 
       const data = await response.json();
 
-      // 구글 에러 응답 처리
+      // Groq 에러 처리
       if (data.error) {
-        throw new Error(`Gemini Error: ${data.error.message}`);
+        throw new Error(`Groq Error: ${data.error.message}`);
       }
 
-      const rawResult = data.candidates[0].content.parts[0].text;
-
+      // Groq의 응답 경로는 data.choices[0].message.content 입니다.
+      const rawResult = data.choices[0].message.content;
       // [핵심] JSON만 추출하기 (마크다운 백틱 제거)
       const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON found in AI response");
