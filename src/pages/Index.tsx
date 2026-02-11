@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { ArrowDownWideNarrow, Clock, Target } from "lucide-react";
+import { ArrowDownWideNarrow, Clock, Target, Ruler, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterBar } from "@/components/FilterBar";
 import { DateNav } from "@/components/DateNav";
@@ -16,7 +17,7 @@ import { computeMatch } from "@/lib/matchScore";
 import { REGIONS, DISPLAY_REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
 import { classifyUKRegion } from "@/lib/geo";
 
-type SortMode = "recent" | "best-match";
+type SortMode = "recent" | "best-match" | "distance";
 
 const Index = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -25,6 +26,8 @@ const Index = () => {
   const [selectedRecency, setSelectedRecency] = useState<RecencyValue>("all");
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("recent");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
 
   const { profile, draft, setDraft, save, isDirty, isConfigured } = useProfile();
 
@@ -72,16 +75,54 @@ const Index = () => {
     });
   }, [snapshots, isUKDistanceFilter, selectedRegion]);
 
+  // Text search filter
+  const searchFiltered = useMemo(() => {
+    if (!searchQuery.trim()) return distanceFilteredSnapshots;
+    const q = searchQuery.toLowerCase();
+    return distanceFilteredSnapshots.filter((s) => {
+      const title = (s.job_title ?? "").toLowerCase();
+      const company = (s.company_name ?? "").toLowerCase();
+      const role = s.role.toLowerCase();
+      return title.includes(q) || company.includes(q) || role.includes(q);
+    });
+  }, [distanceFilteredSnapshots, searchQuery]);
+
+  // Skill tag filter
+  const skillFiltered = useMemo(() => {
+    if (!selectedSkill) return searchFiltered;
+    return searchFiltered.filter((s) =>
+      s.skills?.some((sk) => sk.toLowerCase() === selectedSkill.toLowerCase()) ||
+      s.keyword_hits?.some((kw) => kw.toLowerCase() === selectedSkill.toLowerCase())
+    );
+  }, [searchFiltered, selectedSkill]);
+
+  // Collect all unique skills for tag cloud
+  const allSkills = useMemo(() => {
+    const set = new Set<string>();
+    distanceFilteredSnapshots.forEach((s) => {
+      s.skills?.forEach((sk) => set.add(sk));
+      s.keyword_hits?.forEach((kw) => set.add(kw));
+    });
+    return Array.from(set).sort();
+  }, [distanceFilteredSnapshots]);
+
   const sortedSnapshots = useMemo(() => {
     if (sortMode === "best-match" && isConfigured) {
-      return [...distanceFilteredSnapshots].sort((a, b) => {
+      return [...skillFiltered].sort((a, b) => {
         const scoreA = computeMatch(a, profile).score;
         const scoreB = computeMatch(b, profile).score;
         return scoreB - scoreA;
       });
     }
-    return distanceFilteredSnapshots;
-  }, [distanceFilteredSnapshots, sortMode, profile, isConfigured]);
+    if (sortMode === "distance") {
+      return [...skillFiltered].sort((a, b) => {
+        const da = a.distance_km ?? Infinity;
+        const db = b.distance_km ?? Infinity;
+        return da - db;
+      });
+    }
+    return skillFiltered;
+  }, [skillFiltered, sortMode, profile, isConfigured]);
 
   const handleDateChange = (date: string | null) => {
     setSelectedDate(date);
@@ -120,6 +161,57 @@ const Index = () => {
           onPlatformChange={setSelectedPlatform}
         />
 
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by company, job title, or role..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Skill tags */}
+        {allSkills.length > 0 && (
+          <div>
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Skills</label>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedSkill && (
+                <button
+                  className="filter-chip text-xs active"
+                  onClick={() => setSelectedSkill(null)}
+                >
+                  {selectedSkill} ✕
+                </button>
+              )}
+              {allSkills
+                .filter((sk) => sk !== selectedSkill)
+                .slice(0, 20)
+                .map((skill) => (
+                  <button
+                    key={skill}
+                    className="filter-chip text-xs"
+                    onClick={() => setSelectedSkill(selectedSkill === skill ? null : skill)}
+                  >
+                    {skill}
+                  </button>
+                ))}
+              {allSkills.length > 20 && !selectedSkill && (
+                <span className="text-xs text-muted-foreground self-center">+{allSkills.length - 20} more</span>
+              )}
+            </div>
+          </div>
+        )}
+
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm text-muted-foreground uppercase tracking-wider">
@@ -144,6 +236,13 @@ const Index = () => {
               >
                 <Target className="w-3 h-3" />
                 Best Match
+              </button>
+              <button
+                className={`filter-chip text-xs gap-1 inline-flex items-center ${sortMode === "distance" ? "active" : ""}`}
+                onClick={() => setSortMode("distance")}
+              >
+                <Ruler className="w-3 h-3" />
+                Nearest
               </button>
             </div>
           </div>
