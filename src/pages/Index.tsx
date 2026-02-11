@@ -8,6 +8,7 @@ import { GenerateButton } from "@/components/GenerateButton";
 import { ExportCSV } from "@/components/ExportCSV";
 import { StatsBar } from "@/components/StatsBar";
 import { ProfileEditor } from "@/components/ProfileEditor";
+import { ApiAccessSection } from "@/components/ApiAccessSection";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
 import { useProfile } from "@/hooks/useProfile";
 import { computeMatch } from "@/lib/matchScore";
@@ -126,6 +127,8 @@ const Index = () => {
             isProfileConfigured={isConfigured}
           />
         </section>
+
+        <ApiAccessSection />
       </main>
     </div>
   );
