@@ -52,8 +52,8 @@ export function GenerateButton() {
       if (error) throw error;
 
       toast({ title: "Snapshots generated", description: `${rows.length} snapshots for ${today}` });
-      queryClient.invalidateQueries({ queryKey: ["snapshots"] });
-      queryClient.invalidateQueries({ queryKey: ["snapshot-dates"] });
+      await queryClient.invalidateQueries({ queryKey: ["snapshots"], refetchType: "active" });
+      await queryClient.invalidateQueries({ queryKey: ["snapshot-dates"], refetchType: "active" });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
