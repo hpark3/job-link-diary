@@ -135,11 +135,11 @@ export function ProfileEditor({ draft, onUpdate, onSave, isDirty, isConfigured }
       Return ONLY the JSON object. No intro, no markdown.`;
 
 // 주소 및 설정
-// [완전 해결] 모델명을 경로 중간에 넣는 표준 형식으로 변경합니다.
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+// [진짜 최종] 리스트에서 확인된 지원 모델명을 사용합니다.
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
       const response = await fetch(API_URL, {
-        method: "POST", // [필수] GET 에러 방지
+        method: "POST",
         headers: { 
           "Content-Type": "application/json" 
         },
