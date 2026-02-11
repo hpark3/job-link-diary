@@ -12,3 +12,28 @@ export const DISTANCE_BANDS = [
 export function getDistanceBand(km: number): (typeof DISTANCE_BANDS)[number] {
   return DISTANCE_BANDS.find((b) => km >= b.min && km < b.max) ?? DISTANCE_BANDS[3];
 }
+
+/** Distance-based UK region classification */
+export const UK_DISTANCE_REGIONS = [
+  { label: "London – Inner", maxKm: 10 },
+  { label: "London – Outer", maxKm: 20 },
+  { label: "London – Commuter Belt", maxKm: 35 },
+  { label: "UK – Remote / Hybrid", maxKm: Infinity },
+] as const;
+
+export type UKDistanceRegion = (typeof UK_DISTANCE_REGIONS)[number]["label"];
+
+/** Classify a UK snapshot into a distance-based region */
+export function classifyUKRegion(distanceKm: number | null | undefined): UKDistanceRegion {
+  if (distanceKm == null) return "UK – Remote / Hybrid";
+  for (const band of UK_DISTANCE_REGIONS) {
+    if (distanceKm <= band.maxKm) return band.label;
+  }
+  return "UK – Remote / Hybrid";
+}
+
+/** Get distance band label for CSV export */
+export function getDistanceBandLabel(km: number | null | undefined): string {
+  if (km == null) return "";
+  return getDistanceBand(km).label;
+}

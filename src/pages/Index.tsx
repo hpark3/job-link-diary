@@ -13,7 +13,8 @@ import { BackToTop } from "@/components/BackToTop";
 import { useSnapshots, useAvailableDates } from "@/hooks/useSnapshots";
 import { useProfile } from "@/hooks/useProfile";
 import { computeMatch } from "@/lib/matchScore";
-import { REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
+import { REGIONS, DISPLAY_REGIONS, RECENCY_OPTIONS, type RecencyValue } from "@/lib/constants";
+import { classifyUKRegion } from "@/lib/geo";
 
 type SortMode = "recent" | "best-match";
 
@@ -27,8 +28,12 @@ const Index = () => {
 
   const { profile, draft, setDraft, save, isDirty, isConfigured } = useProfile();
 
+  // Map selected display region to DB query region + distance filter
+  const isUKDistanceFilter = selectedRegion && ["london-inner", "london-outer", "london-commuter", "uk-remote"].includes(selectedRegion);
   const regionName = selectedRegion
-    ? REGIONS.find((r) => r.key === selectedRegion)?.name ?? undefined
+    ? isUKDistanceFilter
+      ? "London, United Kingdom"
+      : (REGIONS.find((r) => r.key === selectedRegion)?.name ?? DISPLAY_REGIONS.find((r) => r.key === selectedRegion)?.name ?? undefined)
     : undefined;
 
   const recencyDays = selectedDate
@@ -45,17 +50,38 @@ const Index = () => {
 
   const { data: dates = [] } = useAvailableDates();
 
+  // Apply distance-based UK region filter client-side
+  const distanceFilteredSnapshots = useMemo(() => {
+    if (!isUKDistanceFilter) return snapshots;
+
+    const distanceLimits: Record<string, { min: number; max: number }> = {
+      "london-inner": { min: 0, max: 10 },
+      "london-outer": { min: 10, max: 20 },
+      "london-commuter": { min: 20, max: 35 },
+      "uk-remote": { min: 35, max: Infinity },
+    };
+    const limits = distanceLimits[selectedRegion!];
+    if (!limits) return snapshots;
+
+    return snapshots.filter((s) => {
+      if (s.distance_km == null) {
+        // Snapshots without distance go to "UK – Remote / Hybrid"
+        return selectedRegion === "uk-remote";
+      }
+      return s.distance_km >= limits.min && s.distance_km < limits.max;
+    });
+  }, [snapshots, isUKDistanceFilter, selectedRegion]);
+
   const sortedSnapshots = useMemo(() => {
     if (sortMode === "best-match" && isConfigured) {
-      return [...snapshots].sort((a, b) => {
+      return [...distanceFilteredSnapshots].sort((a, b) => {
         const scoreA = computeMatch(a, profile).score;
         const scoreB = computeMatch(b, profile).score;
         return scoreB - scoreA;
       });
     }
-    // "recent" is already sorted by date desc from the query
-    return snapshots;
-  }, [snapshots, sortMode, profile, isConfigured]);
+    return distanceFilteredSnapshots;
+  }, [distanceFilteredSnapshots, sortMode, profile, isConfigured]);
 
   const handleDateChange = (date: string | null) => {
     setSelectedDate(date);

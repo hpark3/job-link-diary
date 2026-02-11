@@ -1,4 +1,4 @@
-import { ROLES, REGIONS, RECENCY_OPTIONS, PLATFORMS, type RecencyValue } from "@/lib/constants";
+import { ROLES, DISPLAY_REGIONS, RECENCY_OPTIONS, PLATFORMS, type RecencyValue } from "@/lib/constants";
 import { Clock } from "lucide-react";
 
 interface FilterBarProps {
@@ -97,7 +97,7 @@ export function FilterBar({
           >
             All
           </button>
-          {REGIONS.map((region) => (
+          {DISPLAY_REGIONS.map((region) => (
             <button
               key={region.key}
               className={`filter-chip ${selectedRegion === region.key ? "active" : ""}`}
