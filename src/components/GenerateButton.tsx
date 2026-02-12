@@ -3,18 +3,17 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
-export function GenerateButton() {
+// Index.tsx에서 스타일을 주입받을 수 있도록 className props 추가
+export function GenerateButton({ className }: { className?: string }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      // 1. Edge Function 혹은 외부 API 호출 대신, 
-      // 현재 수집된 데이터를 리프레시하거나 트리거하는 로직
-      // (사용자님의 프로젝트 환경에 따라 수집 방식은 다를 수 있으나, 에러 원인이었던 upsert 로직을 수정합니다.)
-      
+      // ✅ [원문 로직 유지] 1. 현재 데이터 가져오기
       const { data: existingData, error: fetchError } = await supabase
         .from("snapshots")
         .select("*")
@@ -22,11 +21,11 @@ export function GenerateButton() {
 
       if (fetchError) throw fetchError;
 
-      // upsert 시 중복 체크 기준을 'id'로 변경
+      // ✅ [원문 로직 유지] 2. upsert (id 기준 충돌 체크)
       const { error: upsertError } = await supabase
         .from("snapshots")
         .upsert(existingData || [], { 
-          onConflict: 'id' // ⬅️ 'linkedin_search_url'에서 'id'로 수정 완료!
+          onConflict: 'id' 
         });
 
       if (upsertError) throw upsertError;
@@ -36,7 +35,7 @@ export function GenerateButton() {
         description: "Data has been refreshed successfully.",
       });
       
-      // 페이지 새로고침하여 데이터 반영
+      // ✅ [원문 로직 유지] 3. 페이지 새로고침
       window.location.reload();
 
     } catch (error: any) {
@@ -53,13 +52,17 @@ export function GenerateButton() {
 
   return (
     <Button 
-      variant="outline" 
-      size="sm" 
       onClick={handleGenerate} 
       disabled={isGenerating}
-      className="gap-2"
+      // ✅ 디자인: variant="outline"을 제거하고 타원형 블루 테마 적용
+      className={cn(
+        "gap-2 border px-4 h-auto py-2.5 transition-all font-medium rounded-full", // 타원형 캡슐
+        "bg-white border-[#5F74DD] text-[#5F74DD] hover:bg-[#5F74DD] hover:text-white", // 블루 테마 및 호버 반전
+        isGenerating && "opacity-50 cursor-not-allowed",
+        className // 외부 주입 스타일 허용
+      )}
     >
-      <RefreshCw className={`w-4 h-4 ${isGenerating ? "animate-spin" : ""}`} />
+      <RefreshCw className={cn("w-4 h-4", isGenerating && "animate-spin")} />
       {isGenerating ? "Refreshing..." : "Generate Today"}
     </Button>
   );

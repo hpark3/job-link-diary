@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Clock, Target, Ruler, Search, X, Zap } from "lucide-react";
+import { Clock, Target, Ruler, Search, X, Zap, ChevronDown, Upload, RefreshCw } from "lucide-react"; // Upload 아이콘 추가
 import { Input } from "@/components/ui/input";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterBar } from "@/components/FilterBar";
@@ -31,6 +31,7 @@ const Index = () => {
   const [sortMode, setSortMode] = useState<SortMode>("recent");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(12);
 
   const { profile, draft, setDraft, save, isDirty, isConfigured } = useProfile();
   const recencyDays = RECENCY_OPTIONS.find((o) => o.value === selectedRecency)?.days ?? null;
@@ -49,9 +50,6 @@ const Index = () => {
     }) : null;
   }, [snapshots]);
 
-  // 1. 동적 필터 생성 (geo.ts의 분류 함수 기준)
-  // Index.tsx 내 dynamicFilters 부분
-
   const dynamicFilters = useMemo(() => {
     const roles = new Set<string>();
     const regions = new Set<string>();
@@ -60,74 +58,40 @@ const Index = () => {
     snapshots.forEach((s) => {
       if (s.category) roles.add(s.category);
       if (s.platform) platforms.add(s.platform);
-
       const regionLabel = classifyUKRegion(s.distance_km, s.location_detail);
       regions.add(regionLabel);
     });
 
-    // [수정] 필터 표시 순서를 강제로 지정합니다.
-    const regionOrder = [
-      "London – Inner",
-      "London – Outer",
-      "London – Commuter Belt",
-      "Greater Manchester",
-      "UK – Regional",
-      "UK – Remote",
-      "UK – Hybrid"
-    ];
+    const regionOrder = ["London – Inner", "London – Outer", "London – Commuter Belt", "Greater Manchester", "UK – Regional", "UK – Remote", "UK – Hybrid"];
 
     return {
       roles: Array.from(roles).sort(),
-      // 지정된 순서대로 정렬하되, 목록에 없는 항목은 맨 뒤로 보냅니다.
       regions: Array.from(regions).sort((a, b) => {
-        const indexA = regionOrder.indexOf(a);
-        const indexB = regionOrder.indexOf(b);
-        const posA = indexA === -1 ? 999 : indexA;
-        const posB = indexB === -1 ? 999 : indexB;
+        const posA = regionOrder.indexOf(a) === -1 ? 999 : regionOrder.indexOf(a);
+        const posB = regionOrder.indexOf(b) === -1 ? 999 : regionOrder.indexOf(b);
         return posA - posB;
       }),
       platforms: Array.from(platforms).sort(),
     };
   }, [snapshots]);
 
-  // 2. 데이터 필터링 로직
   const filteredSnapshots = useMemo(() => {
     let result = [...snapshots];
-
-    if (selectedRole) {
-      result = result.filter((s) => (s.category ?? "").toLowerCase() === selectedRole.toLowerCase());
-    }
-
-    if (selectedPlatform) {
-      result = result.filter((s) => s.platform === selectedPlatform);
-    }
-
-    // [핵심] 선택된 필터 버튼과 공고의 실시간 분류 결과가 일치하는 것만 거름
+    if (selectedRole) result = result.filter((s) => (s.category ?? "").toLowerCase() === selectedRole.toLowerCase());
+    if (selectedPlatform) result = result.filter((s) => s.platform === selectedPlatform);
     if (selectedRegion) {
-      result = result.filter((s) => {
-        const currentLabel = classifyUKRegion(s.distance_km, s.location_detail);
-        return currentLabel === selectedRegion;
-      });
+      result = result.filter((s) => classifyUKRegion(s.distance_km, s.location_detail) === selectedRegion);
     }
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter((s) =>
-        (s.job_title ?? "").toLowerCase().includes(q) ||
-        (s.company_name ?? "").toLowerCase().includes(q)
-      );
+      result = result.filter((s) => (s.job_title ?? "").toLowerCase().includes(q) || (s.company_name ?? "").toLowerCase().includes(q));
     }
-
     if (selectedSkill) {
-      result = result.filter((s) =>
-        s.skills?.some((sk) => sk.toLowerCase() === selectedSkill.toLowerCase()) ||
-        s.keyword_hits?.some((kw) => kw.toLowerCase() === selectedSkill.toLowerCase())
-      );
+      result = result.filter((s) => s.skills?.some((sk) => sk.toLowerCase() === selectedSkill.toLowerCase()) || s.keyword_hits?.some((kw) => kw.toLowerCase() === selectedSkill.toLowerCase()));
     }
     return result;
   }, [snapshots, selectedRole, selectedPlatform, selectedRegion, searchQuery, selectedSkill]);
 
-  // 3. 스킬 태그 추출
   const allSkills = useMemo(() => {
     const set = new Set<string>();
     snapshots.forEach((s) => {
@@ -137,26 +101,19 @@ const Index = () => {
     return Array.from(set).sort().slice(0, 20);
   }, [snapshots]);
 
-  // 4. 정렬 로직
   const sortedSnapshots = useMemo(() => {
     const result = [...filteredSnapshots];
     if (sortMode === "best-match" && isConfigured) {
-      result.sort((a, b) => {
-        const scoreA = computeMatch(a as any, profile).score;
-        const scoreB = computeMatch(b as any, profile).score;
-        return scoreB - scoreA;
-      });
+      result.sort((a, b) => computeMatch(b as any, profile).score - computeMatch(a as any, profile).score);
     } else if (sortMode === "distance") {
-      result.sort((a, b) => {
-        const da = a.distance_km ?? Infinity;
-        const db = b.distance_km ?? Infinity;
-        return da - db;
-      });
+      result.sort((a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity));
     } else {
       result.sort((a, b) => new Date(b.captured_at || 0).getTime() - new Date(a.captured_at || 0).getTime());
     }
     return result;
   }, [filteredSnapshots, sortMode, profile, isConfigured]);
+
+  const visibleSnapshots = useMemo(() => sortedSnapshots.slice(0, visibleCount), [sortedSnapshots, visibleCount]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
@@ -179,15 +136,28 @@ const Index = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-1 bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
-            <ExportCSV snapshots={sortedSnapshots} />
-            <div className="w-[1px] h-4 bg-slate-200 mx-1" />
-            <ProfileEditor draft={draft} onUpdate={setDraft} onSave={save} isDirty={isDirty} isConfigured={isConfigured} />
-            <div className="w-[1px] h-4 bg-slate-200 mx-1" />
-            <GenerateButton />
+          <div className="flex items-center gap-3">
+            {/* ✅ Export CSV 버튼 주석 처리 (이후 다른 위치 활용 고려) */}
+            {/* <ExportCSV snapshots={sortedSnapshots} /> */}
+
+            {/* ✅ Upload CV: 목업 요구사항 반영 (#EA6753 계열, 타원형) */}
+            <ProfileEditor 
+              draft={draft} 
+              onUpdate={setDraft} 
+              onSave={save} 
+              isDirty={isDirty} 
+              isConfigured={isConfigured} 
+              className="bg-white border-[#EA6753] text-[#EA6753] hover:bg-[#EA6753] hover:text-white rounded-full transition-all px-6 py-2 shadow-none"
+            />
+
+            {/* ✅ Generate Today: 목업 요구사항 반영 (#5F74DD 계열, 타원형) */}
+            <GenerateButton 
+              className="bg-white border-[#5F74DD] text-[#5F74DD] hover:bg-[#5F74DD] hover:text-white rounded-full transition-all px-6 py-2 shadow-none"
+            />
           </div>
         </div>
 
+        {/* ... (중략: 필터바 및 검색 로직) ... */}
         <div className="space-y-8">
           <FilterBar
             roles={dynamicFilters.roles}
@@ -211,40 +181,9 @@ const Index = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-12 h-14 bg-white border-slate-200 shadow-sm rounded-2xl text-base"
             />
-            {searchQuery && (
-              <X className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 cursor-pointer text-slate-400 hover:text-slate-600" onClick={() => setSearchQuery("")} />
-            )}
+            {searchQuery && <X className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 cursor-pointer text-slate-400 hover:text-slate-600" onClick={() => setSearchQuery("")} />}
           </div>
         </div>
-
-        {allSkills.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-              <Zap className="w-3 h-3 text-amber-500 fill-amber-500" /> Hot Skills
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {selectedSkill && (
-                <button
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all bg-slate-900 text-white shadow-md flex items-center gap-1"
-                  onClick={() => setSelectedSkill(null)}
-                >
-                  {selectedSkill} <X className="w-3 h-3" />
-                </button>
-              )}
-              {allSkills
-                .filter((sk) => sk !== selectedSkill)
-                .map((skill) => (
-                  <button
-                    key={skill}
-                    className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all bg-white text-slate-600 hover:border-slate-300 border border-slate-200"
-                    onClick={() => setSelectedSkill(skill)}
-                  >
-                    {skill}
-                  </button>
-                ))}
-            </div>
-          </div>
-        )}
 
         <section className="space-y-6 pt-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -253,34 +192,27 @@ const Index = () => {
             </h2>
 
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
-                onClick={() => setSortMode("recent")}
-                className={`text-[11px] px-3 py-1.5 rounded-lg transition-all font-bold flex items-center gap-1.5 ${sortMode === "recent" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-              >
-                <Clock className="w-3 h-3" /> Recent
-              </button>
-              <button
-                onClick={() => setSortMode("best-match")}
-                disabled={!isConfigured}
-                className={`text-[11px] px-3 py-1.5 rounded-lg transition-all font-bold flex items-center gap-1.5 ${sortMode === "best-match" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700 disabled:opacity-30"}`}
-                title={!isConfigured ? "Upload CV to enable match sorting" : ""}
-              >
-                <Target className="w-3 h-3" /> Best Match
-              </button>
-              <button
-                onClick={() => setSortMode("distance")}
-                className={`text-[11px] px-3 py-1.5 rounded-lg transition-all font-bold flex items-center gap-1.5 ${sortMode === "distance" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-              >
-                <Ruler className="w-3 h-3" /> Nearest
-              </button>
+              <button onClick={() => setSortMode("recent")} className={`text-[11px] px-3 py-1.5 rounded-lg transition-all font-bold flex items-center gap-1.5 ${sortMode === "recent" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}><Clock className="w-3 h-3" /> Recent</button>
+              <button onClick={() => setSortMode("best-match")} className={`text-[11px] px-3 py-1.5 rounded-lg transition-all font-bold flex items-center gap-1.5 ${sortMode === "best-match" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700 disabled:opacity-30"}`} disabled={!isConfigured}><Target className="w-3 h-3" /> Best Match</button>
+              <button onClick={() => setSortMode("distance")} className={`text-[11px] px-3 py-1.5 rounded-lg transition-all font-bold flex items-center gap-1.5 ${sortMode === "distance" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}><Ruler className="w-3 h-3" /> Nearest</button>
             </div>
           </div>
-          <SnapshotGrid
-            snapshots={sortedSnapshots}
-            isLoading={isLoading}
-            profile={profile}
-            isProfileConfigured={isConfigured}
-          />
+
+          <SnapshotGrid snapshots={visibleSnapshots} isLoading={isLoading} profile={profile} isProfileConfigured={isConfigured} />
+
+          {/* ✅ Show More 버튼: 블루 테두리 + 둥근 캡슐 */}
+          {sortedSnapshots.length > visibleCount && (
+            <div className="flex justify-center pt-8 pb-20">
+              <button
+                onClick={() => setVisibleCount((prev) => prev + 12)}
+                className="flex items-center gap-2 px-8 py-3 rounded-full border border-blue-100 bg-white text-blue-600 font-medium hover:bg-blue-50/50 hover:border-blue-200 transition-all shadow-sm group"
+              >
+                <ChevronDown className="w-4 h-4 text-blue-400 group-hover:translate-y-0.5 transition-transform" />
+                <span className="text-sm">Show more</span>
+                <span className="text-sm text-slate-400 font-normal">({sortedSnapshots.length - visibleCount})</span>
+              </button>
+            </div>
+          )}
         </section>
       </main>
       <BackToTop />
