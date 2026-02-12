@@ -20,7 +20,6 @@ interface SnapshotGridProps {
   isLoading: boolean;
   profile?: CandidateProfile;
   isProfileConfigured?: boolean;
-  // ✅ 페이지네이션 연동 props
   onPrevPage?: () => void;
   onNextPage?: () => void;
   hasPrev?: boolean;
@@ -63,8 +62,8 @@ export function SnapshotGrid({
     if (distance < -minSwipeDistance && onPrevPage && hasPrev) onPrevPage();
   };
 
-  // ✅ 테두리(border)와 배경(bg)을 모두 제거하여 완전히 투명하게 설정
-  const arrowBtnBase = "absolute top-1/2 -translate-y-1/2 z-20 w-16 h-32 flex items-center justify-center text-[#5F74DD] transition-all duration-300 active:scale-90 group hidden md:flex cursor-pointer border-none bg-transparent outline-none";
+  // ✅ 테두리와 배경을 완전히 제거한 투명 스타일
+  const arrowBtnBase = "absolute top-1/2 -translate-y-1/2 z-20 w-16 h-40 flex items-center justify-center text-[#5F74DD] transition-all duration-300 active:scale-90 group hidden md:flex cursor-pointer bg-transparent border-none outline-none shadow-none";
 
   if (isLoading) return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-pulse">
@@ -87,13 +86,13 @@ export function SnapshotGrid({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* ◀️ 왼쪽 화살표 인디케이터: 투명 스타일 */}
+      {/* ◀️ 왼쪽 화살표: 테두리 없는 투명 스타일 */}
       {hasPrev && onPrevPage && (
         <button
           onClick={(e) => { e.preventDefault(); onPrevPage(); }}
-          className={cn(arrowBtnBase, "-left-8 lg:-left-16 opacity-10 hover:opacity-100")}
+          className={cn(arrowBtnBase, "-left-10 lg:-left-20 opacity-20 hover:opacity-100")}
         >
-          <ChevronLeft strokeWidth={1.5} className="w-14 h-14 group-hover:-translate-x-1 transition-transform" />
+          <ChevronLeft strokeWidth={2.5} className="w-16 h-16 group-hover:-translate-x-1 transition-transform" />
         </button>
       )}
 
@@ -139,13 +138,13 @@ export function SnapshotGrid({
         })}
       </div>
 
-      {/* ▶️ 오른쪽 화살표 인디케이터: 투명 스타일 */}
+      {/* ▶️ 오른쪽 화살표: 테두리 없는 투명 스타일 */}
       {hasNext && onNextPage && (
         <button
           onClick={(e) => { e.preventDefault(); onNextPage(); }}
-          className={cn(arrowBtnBase, "-right-8 lg:-right-16 opacity-10 hover:opacity-100")}
+          className={cn(arrowBtnBase, "-right-10 lg:-right-20 opacity-20 hover:opacity-100")}
         >
-          <ChevronRight strokeWidth={1.5} className="w-14 h-14 group-hover:translate-x-1 transition-transform" />
+          <ChevronRight strokeWidth={2.5} className="w-16 h-16 group-hover:translate-x-1 transition-transform" />
         </button>
       )}
     </div>

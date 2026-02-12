@@ -17,8 +17,8 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -138,10 +138,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    // index.ts 하단부 수정
     const { error } = await supabase.from("snapshots").upsert(rows, {
-      onConflict: "date,role,region,platform",
+      // 기준을 '날짜, 직무명, 회사명, 플랫폼'으로 조합하는 것이 더 정확합니다.
+      onConflict: "date,job_title,company_name,platform",
     });
-
     if (error) throw error;
 
     return new Response(
