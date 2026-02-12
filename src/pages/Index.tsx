@@ -152,7 +152,7 @@ const Index = () => {
 
             {/* ✅ Generate Today: 목업 요구사항 반영 (#5F74DD 계열, 타원형) */}
             <GenerateButton 
-              className="bg-white border-[#5F74DD] text-[#5F74DD] hover:bg-[#5F74DD] hover:text-white rounded-full transition-all px-6 py-2 shadow-none"
+              className="bg-white border-[#5F74DD] text-[#5F74DD] hover:bg-[#5F74DD] hover:text-white rounded-full transition-all px-4 py-2 shadow-none"
             />
           </div>
         </div>
