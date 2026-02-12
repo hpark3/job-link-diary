@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, MapPin, Briefcase, Calendar, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { ExternalLink, MapPin, Briefcase, Calendar, Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Snapshot } from "@/hooks/useSnapshots";
 import { PLATFORMS, ROLE_DESCRIPTIONS, REGION_DESCRIPTIONS } from "@/lib/constants";
 import type { CandidateProfile } from "@/hooks/useProfile";
 import { computeMatch } from "@/lib/matchScore";
 import { MatchBadge } from "@/components/MatchBadge";
-import { classifyUKRegion } from "@/lib/geo"; // 분류 함수 임포트
+import { classifyUKRegion } from "@/lib/geo";
+import { cn } from "@/lib/utils";
 import {
   HoverCard,
   HoverCardContent,
@@ -19,6 +20,11 @@ interface SnapshotGridProps {
   isLoading: boolean;
   profile?: CandidateProfile;
   isProfileConfigured?: boolean;
+  // ✅ 페이지네이션 연동 props
+  onPrevPage?: () => void;
+  onNextPage?: () => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
 }
 
 function getRegionBadgeClass(label: string): string {
@@ -31,57 +37,117 @@ function getRegionBadgeClass(label: string): string {
   return "bg-gray-50 text-gray-600 border-gray-100";
 }
 
-export function SnapshotGrid({ snapshots, isLoading, profile, isProfileConfigured }: SnapshotGridProps) {
-  const [visibleCount, setVisibleCount] = useState(12);
+export function SnapshotGrid({
+  snapshots,
+  isLoading,
+  profile,
+  isProfileConfigured,
+  onPrevPage,
+  onNextPage,
+  hasPrev,
+  hasNext
+}: SnapshotGridProps) {
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
 
-  useEffect(() => { setVisibleCount(12); }, [snapshots]);
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    if (distance > minSwipeDistance && onNextPage && hasNext) onNextPage();
+    if (distance < -minSwipeDistance && onPrevPage && hasPrev) onPrevPage();
+  };
 
-  if (isLoading) return <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-pulse">...</div>;
-  if (snapshots.length === 0) return <div className="text-center py-16 text-muted-foreground">No snapshots found</div>;
+  // ✅ 테두리(border)와 배경(bg)을 모두 제거하여 완전히 투명하게 설정
+  const arrowBtnBase = "absolute top-1/2 -translate-y-1/2 z-20 w-16 h-32 flex items-center justify-center text-[#5F74DD] transition-all duration-300 active:scale-90 group hidden md:flex cursor-pointer border-none bg-transparent outline-none";
+
+  if (isLoading) return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-pulse">
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <div key={i} className="h-40 bg-slate-100 rounded-2xl" />
+      ))}
+    </div>
+  );
+
+  if (snapshots.length === 0) return (
+    <div className="text-center py-16 text-muted-foreground bg-white rounded-3xl border border-dashed border-slate-200">
+      No snapshots found
+    </div>
+  );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      {snapshots.slice(0, visibleCount).map((snapshot) => {
-        // [중요] DB의 원본 region이 아닌, 함수로 계산된 최신 라벨을 가져옴
-        const currentRegionLabel = classifyUKRegion(snapshot.distance_km, snapshot.location_detail);
-        const match = isProfileConfigured && profile ? computeMatch(snapshot, profile) : null;
+    <div
+      className="relative px-2 group/grid-container"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* ◀️ 왼쪽 화살표 인디케이터: 투명 스타일 */}
+      {hasPrev && onPrevPage && (
+        <button
+          onClick={(e) => { e.preventDefault(); onPrevPage(); }}
+          className={cn(arrowBtnBase, "-left-8 lg:-left-16 opacity-10 hover:opacity-100")}
+        >
+          <ChevronLeft strokeWidth={1.5} className="w-14 h-14 group-hover:-translate-x-1 transition-transform" />
+        </button>
+      )}
 
-        return (
-          <HoverCard key={snapshot.id}>
-            <HoverCardTrigger asChild>
-              <Link to={`/job/${snapshot.id}`} className="snapshot-card group block animate-fade-in relative">
-                <div className="flex justify-between mb-2">
-                  <span className="text-xs font-medium text-primary">{snapshot.platform}</span>
-                </div>
+      {/* 🃏 카드 그리드 레이아웃 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {snapshots.map((snapshot) => {
+          const currentRegionLabel = classifyUKRegion(snapshot.distance_km, snapshot.location_detail);
+          const match = isProfileConfigured && profile ? computeMatch(snapshot, profile) : null;
 
-                <div className="flex items-center gap-2 mb-2">
-                  <Briefcase className="w-3.5 h-3.5 text-accent" />
-                  <span className="text-sm font-medium truncate">{snapshot.job_title || snapshot.role}</span>
-                </div>
-
-                <div className="flex flex-col gap-2 mb-3">
-                  {/* 실제 상세 주소 (예: Rusholme, Manchester) */}
-                  <div className="flex items-start gap-1.5 text-xs text-slate-500">
-                    <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
-                    <span className="truncate">{snapshot.location_detail || "UK"}</span>
+          return (
+            <HoverCard key={snapshot.id}>
+              <HoverCardTrigger asChild>
+                <Link to={`/job/${snapshot.id}`} className="snapshot-card group block animate-fade-in relative">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-xs font-medium text-primary">{snapshot.platform}</span>
                   </div>
-                  
-                  {/* [해결] 이제 분류 라벨이 Manchester일 때만 Manchester 배지가 붙음 */}
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${getRegionBadgeClass(currentRegionLabel)}`}>
-                      {currentRegionLabel}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {format(parseISO(snapshot.date), "MM-dd")}
-                    </span>
+
+                  <div className="flex items-center gap-2 mb-2">
+                    <Briefcase className="w-3.5 h-3.5 text-accent" />
+                    <span className="text-sm font-medium truncate">{snapshot.job_title || snapshot.role}</span>
                   </div>
-                </div>
-                {match && <MatchBadge match={match} />}
-              </Link>
-            </HoverCardTrigger>
-          </HoverCard>
-        );
-      })}
+
+                  <div className="flex flex-col gap-2 mb-3">
+                    <div className="flex items-start gap-1.5 text-xs text-slate-500">
+                      <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
+                      <span className="truncate">{snapshot.location_detail || "UK"}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${getRegionBadgeClass(currentRegionLabel)}`}>
+                        {currentRegionLabel}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {snapshot.date ? format(parseISO(snapshot.date), "MM-dd") : ""}
+                      </span>
+                    </div>
+                  </div>
+                  {match && <MatchBadge match={match} />}
+                </Link>
+              </HoverCardTrigger>
+            </HoverCard>
+          );
+        })}
+      </div>
+
+      {/* ▶️ 오른쪽 화살표 인디케이터: 투명 스타일 */}
+      {hasNext && onNextPage && (
+        <button
+          onClick={(e) => { e.preventDefault(); onNextPage(); }}
+          className={cn(arrowBtnBase, "-right-8 lg:-right-16 opacity-10 hover:opacity-100")}
+        >
+          <ChevronRight strokeWidth={1.5} className="w-14 h-14 group-hover:translate-x-1 transition-transform" />
+        </button>
+      )}
     </div>
   );
 }

@@ -228,7 +228,17 @@ const Index = () => {
             </div>
           </div>
 
-          <SnapshotGrid snapshots={visibleSnapshots} isLoading={isLoading} profile={profile} isProfileConfigured={isConfigured} />
+          <SnapshotGrid
+            snapshots={visibleSnapshots}
+            isLoading={isLoading}
+            profile={profile}
+            isProfileConfigured={isConfigured}
+            // ✅ 페이지 이동 함수와 상태를 연결해줍니다.
+            onPrevPage={() => { if (safePage > 1) { setCurrentPage(safePage - 1); snapshotSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }}
+            onNextPage={() => { if (safePage < totalPages) { setCurrentPage(safePage + 1); snapshotSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }}
+            hasPrev={safePage > 1}
+            hasNext={safePage < totalPages}
+          />
 
           {/* ✅ 페이지네이션: 검은 테두리 제거 및 테마 보정 완료 */}
           {totalPages > 1 && (() => {
@@ -267,8 +277,8 @@ const Index = () => {
                       key={item}
                       onClick={() => { setCurrentPage(item); scrollToSection(); }}
                       className={`w-10 h-10 rounded-full text-sm font-bold transition-all duration-150 ease-[cubic-bezier(.4,0,.2,1)] outline-none ${item === safePage
-                          ? 'bg-[#5F74DD]/10 text-[#5F74DD] border border-[#5F74DD]'
-                          : 'text-slate-300 hover:text-[#5F74DD] hover:bg-[#5F74DD]/5 border border-transparent'
+                        ? 'bg-[#5F74DD]/10 text-[#5F74DD] border border-[#5F74DD]'
+                        : 'text-slate-300 hover:text-[#5F74DD] hover:bg-[#5F74DD]/5 border border-transparent'
                         }`}
                     >
                       {item}
