@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Clock, Target, Ruler, Search, X, Zap, ChevronDown, Upload, RefreshCw } from "lucide-react"; // Upload 아이콘 추가
+import { useState, useMemo, useRef } from "react";
+import { Clock, Target, Ruler, Search, X, Zap, Upload, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterBar } from "@/components/FilterBar";
@@ -22,6 +22,7 @@ type Snapshot = Tables<"snapshots"> & {
 };
 
 type SortMode = "recent" | "best-match" | "distance";
+const ITEMS_PER_PAGE = 9;
 
 const Index = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -31,7 +32,8 @@ const Index = () => {
   const [sortMode, setSortMode] = useState<SortMode>("recent");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(12);
+  const [currentPage, setCurrentPage] = useState(1);
+  const snapshotSectionRef = useRef<HTMLElement>(null);
 
   const { profile, draft, setDraft, save, isDirty, isConfigured } = useProfile();
   const recencyDays = RECENCY_OPTIONS.find((o) => o.value === selectedRecency)?.days ?? null;
@@ -113,7 +115,15 @@ const Index = () => {
     return result;
   }, [filteredSnapshots, sortMode, profile, isConfigured]);
 
-  const visibleSnapshots = useMemo(() => sortedSnapshots.slice(0, visibleCount), [sortedSnapshots, visibleCount]);
+  const totalPages = Math.max(1, Math.ceil(sortedSnapshots.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const visibleSnapshots = useMemo(
+    () => sortedSnapshots.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE),
+    [sortedSnapshots, safePage]
+  );
+
+  // 필터/정렬 변경 시 1페이지로 리셋
+  useMemo(() => { setCurrentPage(1); }, [selectedRole, selectedRegion, selectedRecency, selectedPlatform, sortMode, searchQuery, selectedSkill]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
@@ -137,27 +147,20 @@ const Index = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* ✅ Export CSV 버튼 주석 처리 (이후 다른 위치 활용 고려) */}
-            {/* <ExportCSV snapshots={sortedSnapshots} /> */}
-
-            {/* ✅ Upload CV: 목업 요구사항 반영 (#EA6753 계열, 타원형) */}
-            <ProfileEditor 
-              draft={draft} 
-              onUpdate={setDraft} 
-              onSave={save} 
-              isDirty={isDirty} 
-              isConfigured={isConfigured} 
+            <ProfileEditor
+              draft={draft}
+              onUpdate={setDraft}
+              onSave={save}
+              isDirty={isDirty}
+              isConfigured={isConfigured}
               className="bg-white border-[#EA6753] text-[#EA6753] hover:bg-[#EA6753] hover:text-white rounded-full transition-all px-6 py-2 shadow-none"
             />
-
-            {/* ✅ Generate Today: 목업 요구사항 반영 (#5F74DD 계열, 타원형) */}
-            <GenerateButton 
+            <GenerateButton
               className="bg-white border-[#5F74DD] text-[#5F74DD] hover:bg-[#5F74DD] hover:text-white rounded-full transition-all px-4 py-2 shadow-none"
             />
           </div>
         </div>
 
-        {/* ... (중략: 필터바 및 검색 로직) ... */}
         <div className="space-y-8">
           <FilterBar
             roles={dynamicFilters.roles}
@@ -185,7 +188,34 @@ const Index = () => {
           </div>
         </div>
 
-        <section className="space-y-6 pt-4">
+        {allSkills.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Zap className="w-3 h-3 text-amber-500 fill-amber-500" /> Hot Skills
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {selectedSkill && (
+                <button
+                  className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all bg-slate-900 text-white shadow-md flex items-center gap-1"
+                  onClick={() => setSelectedSkill(null)}
+                >
+                  {selectedSkill} <X className="w-3 h-3" />
+                </button>
+              )}
+              {allSkills.filter((sk) => sk !== selectedSkill).map((skill) => (
+                <button
+                  key={skill}
+                  className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all bg-white text-slate-600 hover:border-slate-300 border border-slate-200"
+                  onClick={() => setSelectedSkill(skill)}
+                >
+                  {skill}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <section ref={snapshotSectionRef} className="space-y-6 pt-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.15em]">
               Snapshots <span className="text-slate-900 mx-1">{sortedSnapshots.length}</span>
@@ -200,19 +230,75 @@ const Index = () => {
 
           <SnapshotGrid snapshots={visibleSnapshots} isLoading={isLoading} profile={profile} isProfileConfigured={isConfigured} />
 
-          {/* ✅ Show More 버튼: 블루 테두리 + 둥근 캡슐 */}
-          {sortedSnapshots.length > visibleCount && (
-            <div className="flex justify-center pt-8 pb-20">
-              <button
-                onClick={() => setVisibleCount((prev) => prev + 12)}
-                className="flex items-center gap-2 px-8 py-3 rounded-full border border-blue-100 bg-white text-blue-600 font-medium hover:bg-blue-50/50 hover:border-blue-200 transition-all shadow-sm group"
-              >
-                <ChevronDown className="w-4 h-4 text-blue-400 group-hover:translate-y-0.5 transition-transform" />
-                <span className="text-sm">Show more</span>
-                <span className="text-sm text-slate-400 font-normal">({sortedSnapshots.length - visibleCount})</span>
-              </button>
-            </div>
-          )}
+          {/* ✅ 페이지네이션: 검은 테두리 제거 및 테마 보정 완료 */}
+          {totalPages > 1 && (() => {
+            const blockSize = 5;
+            const currentBlock = Math.ceil(safePage / blockSize);
+            const blockStart = (currentBlock - 1) * blockSize + 1;
+            const blockEnd = Math.min(blockStart + blockSize - 1, totalPages);
+
+            const scrollToSection = () => {
+              snapshotSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+
+            const arrowClass = "w-10 h-10 flex items-center justify-center text-slate-300 hover:text-[#5F74DD] hover:bg-[#5F74DD]/5 rounded-full transition-all duration-150 ease-[cubic-bezier(.4,0,.2,1)] disabled:opacity-10 outline-none focus:ring-1 focus:ring-[#5F74DD]";
+
+            return (
+              <div className="flex items-center justify-center gap-1 pt-8 pb-20">
+                <button
+                  onClick={() => { setCurrentPage(1); scrollToSection(); }}
+                  disabled={safePage === 1}
+                  className={arrowClass}
+                >
+                  <ChevronsLeft className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={() => { setCurrentPage(Math.max(1, blockStart - 1)); scrollToSection(); }}
+                  disabled={blockStart === 1}
+                  className={arrowClass}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-1 mx-2">
+                  {Array.from({ length: blockEnd - blockStart + 1 }, (_, i) => blockStart + i).map((item) => (
+                    <button
+                      key={item}
+                      onClick={() => { setCurrentPage(item); scrollToSection(); }}
+                      className={`w-10 h-10 rounded-full text-sm font-bold transition-all duration-150 ease-[cubic-bezier(.4,0,.2,1)] outline-none ${item === safePage
+                          ? 'bg-[#5F74DD]/10 text-[#5F74DD] border border-[#5F74DD]'
+                          : 'text-slate-300 hover:text-[#5F74DD] hover:bg-[#5F74DD]/5 border border-transparent'
+                        }`}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                  {blockEnd < totalPages && <span className="px-1 text-slate-200">...</span>}
+                </div>
+
+                <button
+                  onClick={() => {
+                    const nextTarget = Math.min(totalPages, blockEnd + 1);
+                    setCurrentPage(nextTarget);
+                    scrollToSection();
+                  }}
+                  disabled={blockEnd === totalPages}
+                  className={arrowClass}
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={() => { setCurrentPage(totalPages); scrollToSection(); }}
+                  disabled={safePage === totalPages}
+                  className={arrowClass}
+                >
+                  <ChevronsRight className="w-5 h-5" />
+                </button>
+              </div>
+            );
+          })()}
         </section>
       </main>
       <BackToTop />
